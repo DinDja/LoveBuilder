@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid, 
-  Settings, ChevronDown, Eye, ArrowRight, User, Quote, 
-  Menu, X // Importei Menu e X para o mobile
+import {
+  Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid,
+  Settings, ChevronDown, Eye, ArrowRight, User, Quote,
+  Menu, X, Globe // <--- ADICIONEI O GLOBE AQUI
 } from 'lucide-react';
 import { useLovePage } from '../hooks/useLovePage';
 import AuthModal from './AuthModal';
-// --- IMPORTAÇÕES ADICIONAIS NECESSÁRIAS ---
 import { auth } from '../firebase/config';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
@@ -16,14 +15,9 @@ const LandingPage = ({ setStep }) => {
   const [loading, setLoading] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  
-  // --- ESTADO PARA MENU MOBILE ---
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // --- ESTADO LOCAL PARA O USUÁRIO ---
   const [currentUser, setCurrentUser] = useState(null);
 
-  // --- EFEITO PARA MONITORAR AUTENTICAÇÃO ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -31,12 +25,11 @@ const LandingPage = ({ setStep }) => {
     return () => unsubscribe();
   }, []);
 
-  // --- FUNÇÃO DE LOGOUT ---
   const handleLogout = async () => {
     try {
       await signOut(auth);
       setShowUserMenu(false);
-      setMobileMenuOpen(false); // Fecha menu mobile ao sair
+      setMobileMenuOpen(false);
     } catch (error) {
       console.error("Erro ao sair", error);
     }
@@ -55,11 +48,9 @@ const LandingPage = ({ setStep }) => {
         setLoading(false);
       }
     };
-
     fetchPopularPages();
   }, []);
 
-  // Obter iniciais do nome para avatar
   const getUserInitials = () => {
     if (!currentUser) return 'U';
     if (currentUser.displayName) {
@@ -69,6 +60,15 @@ const LandingPage = ({ setStep }) => {
         : names[0][0].toUpperCase();
     }
     return currentUser.email ? currentUser.email[0].toUpperCase() : 'U';
+  };
+
+  // Função para rolar até a seção de explorar
+  const scrollToExplore = () => {
+    const element = document.getElementById('popular');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setMobileMenuOpen(false);
+    }
   };
 
   return (
@@ -86,7 +86,7 @@ const LandingPage = ({ setStep }) => {
       <nav className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-20">
-            
+
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer group z-50" onClick={() => setStep('landing')}>
               <div className="from-rose-500 to-orange-500 bg-gradient-to-br text-white p-2 rounded-xl shadow-lg shadow-rose-200 group-hover:rotate-12 transition-transform duration-300">
@@ -97,19 +97,31 @@ const LandingPage = ({ setStep }) => {
 
             {/* Menu Desktop Central */}
             <div className="hidden md:flex items-center gap-8">
-         
+
+              {/* --- BOTÃO EXPLORAR (NOVO) --- */}
+              <button
+                onClick={() => setStep('feed')}
+                className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors flex items-center gap-2"
+              >
+                <Globe size={16} /> Explorar
+              </button>
+
+              <a href="#features" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
+                Recursos
+              </a>
+              <a href="#how-to" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
+                Como Funciona
+              </a>
             </div>
 
             {/* Lado Direito Desktop - Botões/Autenticação */}
             <div className="hidden md:flex items-center gap-4">
               {currentUser ? (
-                // --- USUÁRIO LOGADO DESKTOP ---
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all hover:shadow-sm group"
                   >
-                    {/* Avatar */}
                     <div className="relative">
                       {currentUser.photoURL ? (
                         <img
@@ -124,15 +136,12 @@ const LandingPage = ({ setStep }) => {
                       )}
                       <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
-
-                    {/* Info */}
                     <div className="text-left">
                       <div className="text-sm font-semibold text-slate-800 truncate max-w-[120px]">
                         {currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuário'}
                       </div>
                       <div className="text-xs text-slate-500">Online</div>
                     </div>
-
                     <ChevronDown size={16} className={`text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                   </button>
 
@@ -144,7 +153,6 @@ const LandingPage = ({ setStep }) => {
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Logado como</p>
                           <p className="text-sm font-medium text-slate-800 truncate">{currentUser.email}</p>
                         </div>
-
                         <div className="py-2">
                           <button
                             onClick={() => {
@@ -155,7 +163,6 @@ const LandingPage = ({ setStep }) => {
                           >
                             <Heart size={18} /> Criar Nova Página
                           </button>
-
                           <button
                             onClick={() => {
                               setStep('dashboard');
@@ -166,9 +173,7 @@ const LandingPage = ({ setStep }) => {
                             <Grid size={18} /> Minhas Páginas
                           </button>
                         </div>
-
                         <div className="border-t border-slate-100 my-1"></div>
-
                         <button
                           onClick={handleLogout}
                           className="w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors flex items-center gap-3 text-red-600"
@@ -176,13 +181,11 @@ const LandingPage = ({ setStep }) => {
                           <LogOut size={18} /> Sair
                         </button>
                       </div>
-                      {/* Overlay para fechar */}
                       <div className="fixed inset-0 z-40 cursor-default" onClick={() => setShowUserMenu(false)} />
                     </>
                   )}
                 </div>
               ) : (
-                // --- USUÁRIO NÃO LOGADO DESKTOP ---
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsAuthModalOpen(true)}
@@ -203,13 +206,12 @@ const LandingPage = ({ setStep }) => {
 
             {/* BOTÃO MOBILE HAMBURGUER */}
             <div className="flex md:hidden items-center gap-4">
-               {/* Se estiver logado, mostra avatar pequeno no header mobile também */}
-               {currentUser && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                    {getUserInitials()}
-                  </div>
-               )}
-              <button 
+              {currentUser && (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                  {getUserInitials()}
+                </div>
+              )}
+              <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
               >
@@ -220,11 +222,23 @@ const LandingPage = ({ setStep }) => {
           </div>
         </div>
 
-        {/* --- MENU MOBILE EXPANSÍVEL (PREMIUM) --- */}
+        {/* --- MENU MOBILE EXPANSÍVEL --- */}
         <div className={`md:hidden absolute w-full bg-white border-b border-slate-100 shadow-xl transition-all duration-300 ease-in-out overflow-hidden ${mobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="px-6 py-6 space-y-6">
-            
-            {/* Links de Navegação */}
+
+            {/* --- LINK EXPLORAR MOBILE --- */}
+            <button
+              onClick={() => {
+                setStep('feed'); // <--- Mudou aqui
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-3 text-slate-600 font-medium py-2 hover:text-rose-600"
+            >
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                <Globe size={18} />
+              </div>
+              Explorar Comunidade
+            </button>
 
             <hr className="border-slate-100" />
 
@@ -260,10 +274,10 @@ const LandingPage = ({ setStep }) => {
                     className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 rounded-xl text-blue-700 font-medium active:scale-95 transition-transform"
                   >
                     <Grid size={24} />
-                    <span>Minhas Páginas</span>
+                    <span>Painel</span>
                   </button>
                 </div>
-                
+
                 <button
                   onClick={handleLogout}
                   className="w-full py-3 flex items-center justify-center gap-2 text-red-500 font-medium hover:bg-red-50 rounded-xl transition-colors"
@@ -307,7 +321,7 @@ const LandingPage = ({ setStep }) => {
           <p className="text-lg md:text-xl text-slate-600 max-w-lg mx-auto lg:mx-0 leading-relaxed">
             Crie uma página romântica personalizada em minutos. Contador de relacionamento, playlist do Spotify, fotos e mensagens emocionantes.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
             <button
               onClick={() => setStep('builder')}
@@ -337,7 +351,7 @@ const LandingPage = ({ setStep }) => {
         <div className="flex-1 relative w-full max-w-[500px] lg:max-w-none">
           <div className="absolute top-0 right-0 w-72 h-72 bg-rose-200 rounded-full filter blur-3xl opacity-30 animate-pulse hidden md:block"></div>
           <div className="absolute bottom-0 left-10 w-72 h-72 bg-purple-200 rounded-full filter blur-3xl opacity-30 animate-pulse delay-700 hidden md:block"></div>
-          
+
           <div className="relative bg-white p-2 md:p-3 rounded-[2rem] shadow-2xl transform rotate-0 lg:rotate-3 hover:rotate-0 transition-transform duration-500 border border-slate-100 mx-auto">
             <div className="rounded-[1.5rem] overflow-hidden bg-slate-900 h-[400px] md:h-[500px] w-full relative group">
               <img
@@ -397,9 +411,8 @@ const LandingPage = ({ setStep }) => {
         </div>
       </div>
 
-      {/* --- SEÇÃO DE PÁGINAS POPULARES (MOBILE OPTIMIZED) --- */}
+      {/* --- SEÇÃO DE PÁGINAS POPULARES --- */}
       <section id="popular" className="py-16 md:py-24 bg-slate-50 relative overflow-hidden">
-        {/* Elementos decorativos */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 text-rose-200 opacity-20 transform rotate-12"><Heart size={60} md:size={100} fill="currentColor" /></div>
           <div className="absolute bottom-20 right-10 text-purple-200 opacity-20 transform -rotate-12"><Heart size={80} md:size={120} fill="currentColor" /></div>
@@ -422,7 +435,6 @@ const LandingPage = ({ setStep }) => {
               <p className="text-slate-500 font-medium">Buscando histórias inspiradoras...</p>
             </div>
           ) : (
-            // Grid responsivo: 1 coluna no mobile, 2 no tablet pequeno, 3 no desktop
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {popularPages.length > 0 ? (
                 popularPages.map((page) => (
@@ -443,7 +455,6 @@ const LandingPage = ({ setStep }) => {
                         />
                       ) : null}
 
-                      {/* Fallback */}
                       <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-rose-100 to-orange-100 ${page.photoUrl ? 'hidden' : 'flex'}`}>
                         <div className="text-center">
                           <div className="flex justify-center -space-x-4 mb-3">
@@ -454,7 +465,6 @@ const LandingPage = ({ setStep }) => {
                         </div>
                       </div>
 
-                      {/* Stats Badges */}
                       <div className="absolute top-4 right-4 flex flex-col gap-2">
                         <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm text-xs font-bold text-slate-700">
                           <Eye size={14} className="text-blue-500" />

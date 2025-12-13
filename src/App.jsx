@@ -6,6 +6,7 @@ import ExampleView from './components/ExampleView';
 import LovePageViewer from './components/LovePageViewer';
 import Dashboard from './components/Dashboard';
 import { useLovePage } from './hooks/useLovePage';
+import LoveFeed from './components/LoveFeed';
 
 export default function App() {
   const [step, setStep] = useState('landing');
@@ -54,6 +55,9 @@ export default function App() {
     switch (step) {
       case 'landing':
         return <LandingPage setStep={setStep} />;
+        
+      case 'feed':
+        return <LoveFeed onBack={() => setStep('landing')} />;
 
       case 'dashboard':
         return (
