@@ -1,12 +1,89 @@
-import React from 'react';
-import { Heart, Music, Calendar, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid, Settings, ChevronDown } from 'lucide-react';
+import { useLovePage } from '../hooks/useLovePage';
+import AuthModal from './AuthModal';
+// --- IMPORTAÇÕES ADICIONAIS NECESSÁRIAS ---
+import { auth } from '../firebase/config'; // Sua configuração do firebase
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
-const LandingPage = ({ setStep }) => {
+const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamos gerenciar aqui
+  const { loadPopularPages } = useLovePage();
+  const [popularPages, setPopularPages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // --- ESTADO LOCAL PARA O USUÁRIO ---
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // --- EFEITO PARA MONITORAR AUTENTICAÇÃO ---
+  useEffect(() => {
+    // Esse listener dispara automaticamente sempre que o usuário loga ou desloga
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+
+    // Limpa o listener quando o componente desmonta
+    return () => unsubscribe();
+  }, []);
+
+  // --- FUNÇÃO DE LOGOUT ---
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // O listener acima vai setar currentUser como null automaticamente
+      setShowUserMenu(false);
+    } catch (error) {
+      console.error("Erro ao sair", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchPopularPages = async () => {
+      try {
+        const result = await loadPopularPages(3);
+        if (result.success) {
+          setPopularPages(result.pages || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar páginas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPopularPages();
+  }, []);
+
+  // Obter iniciais do nome para avatar
+  const getUserInitials = () => {
+    if (!currentUser) return 'U';
+    if (currentUser.displayName) {
+      const names = currentUser.displayName.split(' ');
+      return names.length > 1
+        ? `${names[0][0]}${names[1][0]}`.toUpperCase()
+        : names[0][0].toUpperCase();
+    }
+    return currentUser.email ? currentUser.email[0].toUpperCase() : 'U';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      {/* Navbar */}
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 cursor-pointer group">
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {
+          // Não precisamos passar o user aqui manualmente, 
+          // o onAuthStateChanged vai capturar a mudança automaticamente
+          setIsAuthModalOpen(false);
+        }}
+      />
+
+      {/* NAVBAR */}
+      <nav className="flex justify-between items-center p-6  mx-auto border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+        {/* Logo */}
+        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setStep('landing')}>
           <div className="from-rose-500 to-orange-500 text-white p-2 rounded-xl shadow-lg shadow-rose-200 group-hover:rotate-12 transition-transform duration-300">
             <svg width="20" height="20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="32" cy="32" r="32" fill="url(#paint0_linear_brand)" />
@@ -21,11 +98,152 @@ const LandingPage = ({ setStep }) => {
           </div>
           <span className="font-bold text-xl tracking-tight text-slate-800">Love<span className="text-rose-600">Builder</span></span>
         </div>
-        <button
-          onClick={() => setStep('builder')}
-          className="px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full font-medium transition-colors shadow-lg shadow-rose-200">
-          Criar Minha Página
-        </button>
+
+        {/* Menu Central */}
+        <div className="hidden md:flex items-center gap-8">
+          <a href="#features" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
+            Recursos
+          </a>
+          <a href="#popular" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
+            Páginas Populares
+          </a>
+          <a href="#how-to" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
+            Como Funciona
+          </a>
+        </div>
+
+        {/* Lado Direito - Botões/Autenticação */}
+        <div className="flex items-center gap-4">
+          {currentUser ? (
+            // --- USUÁRIO LOGADO ---
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all hover:shadow-sm group"
+              >
+                {/* Avatar */}
+                <div className="relative">
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt={currentUser.displayName || currentUser.email}
+                      className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm">
+                      {getUserInitials()}
+                    </div>
+                  )}
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+
+                {/* Info */}
+                <div className="text-left hidden md:block">
+                  <div className="text-sm font-semibold text-slate-800 truncate max-w-[120px]">
+                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuário'}
+                  </div>
+                  <div className="text-xs text-slate-500">Online</div>
+                </div>
+
+                <ChevronDown size={16} className={`text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown */}
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 z-50 animate-fade-in-up">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                        {getUserInitials()}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="font-bold text-slate-800 truncate">
+                          {currentUser.displayName || 'Usuário'}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate">
+                          {currentUser.email || 'usuario@email.com'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="py-2">
+                    <button
+                      onClick={() => {
+                        setStep('builder');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors flex items-center gap-3 group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600">
+                        <Heart size={16} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-800">Criar Nova Página</div>
+                        <div className="text-xs text-slate-500">Surpreenda seu amor</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setShowUserMenu(false)}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors flex items-center gap-3 group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                        <Grid size={16} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-800" onClick={() => {
+                          setStep('dashboard'); // Isso agora ativará o case 'dashboard' no App
+                          setShowUserMenu(false);
+                        }}>Minhas Páginas</div>
+                        <div className="text-xs text-slate-500">Gerencie suas criações</div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100 my-2"></div>
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors flex items-center gap-3 group text-rose-600"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                      <LogOut size={16} />
+                    </div>
+                    <div>
+                      <div className="font-medium">Sair</div>
+                      <div className="text-xs opacity-70">Encerrar sessão</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {showUserMenu && (
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowUserMenu(false)}
+                />
+              )}
+            </div>
+          ) : (
+            // --- USUÁRIO NÃO LOGADO ---
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-4 py-2 text-slate-700 hover:text-rose-600 font-medium text-sm transition-colors hidden md:block"
+              >
+                Entrar
+              </button>
+              <button
+                onClick={() => setStep('builder')}
+                className="px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full font-medium transition-colors shadow-lg shadow-rose-200 flex items-center gap-2"
+              >
+                <Heart size={16} className="hidden sm:inline" />
+                Criar Minha Página
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* Hero Section */}
@@ -43,7 +261,7 @@ const LandingPage = ({ setStep }) => {
               className="px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-full font-bold shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 group">
               Começar Agora <Heart className="group-hover:animate-ping inline-flex opacity-30" size={20} />
             </button>
-            <button 
+            <button
               onClick={() => setStep('example')}
               className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-lg rounded-full font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
               Ver Exemplo
@@ -119,7 +337,83 @@ const LandingPage = ({ setStep }) => {
           </div>
         </div>
       </div>
+      <section className="py-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-800 mb-4">
+              Páginas de Amor Criadas Recentemente
+            </h2>
+            <p className="text-slate-600">
+              Veja como outros casais estão expressando seu amor
+            </p>
+          </div>
 
+          {loading ? (
+            <div className="text-center py-12">
+              <Loader className="w-8 h-8 animate-spin text-rose-600 mx-auto" />
+              <p className="mt-2 text-slate-600">Carregando páginas...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6">
+              {popularPages.length > 0 ? (
+                popularPages.map((page) => (
+                  <div key={page.id} className="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-xl transition-shadow">
+                    <div className="aspect-video bg-slate-100 relative">
+                      {page.photoUrl ? (
+                        <img
+                          src={page.photoUrl}
+                          alt={`${page.name1} e ${page.name2}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f1f5f9"/><text x="200" y="150" font-family="Arial" font-size="20" text-anchor="middle" fill="%2394a3b8">❤️</text></svg>';
+                          }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                          <Heart size={32} />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                        <div>
+                          <h3 className="text-white font-bold text-xl">
+                            {page.name1} & {page.name2}
+                          </h3>
+                          <p className="text-rose-200 text-sm">
+                            {page.views || 0} visualizações
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-slate-600 text-sm line-clamp-2 mb-3">
+                        {page.message?.substring(0, 100) || 'Uma linda história de amor...'}...
+                      </p>
+                      <a
+                        href={`/love/${page.slug}`}
+                        className="text-rose-600 hover:text-rose-700 text-sm font-semibold"
+                      >
+                        Ver página completa →
+                      </a>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-12">
+                  <Heart className="w-12 h-12 text-rose-200 mx-auto mb-4" />
+                  <p className="text-slate-600">Ainda não há páginas para mostrar. Seja o primeiro!</p>
+                  <button
+                    onClick={() => setStep('builder')}
+                    className="mt-4 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Criar Primeira Página
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
       {/* Features Section */}
       <section className="bg-white py-20 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-10">

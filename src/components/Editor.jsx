@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, Smartphone, Laptop, Lock, Upload, PlayCircle } from 'lucide-react';
+import { Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, Smartphone, Laptop, Lock, Upload, PlayCircle, Loader2 } from 'lucide-react';
 import RomanticPage from './RomanticPage';
 import { FONTS, THEMES, STICKERS } from '../data/constants';
+import { db, auth } from '../firebase/config';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
 const MUSIC_PRESETS = [
   { id: 1, name: "Perfect", artist: "Ed Sheeran", url: "https://open.spotify.com/track/0tgVpDi06FyKpA1z0eMD4v" },
@@ -11,18 +14,115 @@ const MUSIC_PRESETS = [
   { id: 5, name: "Die With A Smile", artist: "Lady Gaga, Bruno Mars", url: "https://open.spotify.com/track/2plIBRhlDr9GnrPNUeYf5w" }
 ];
 
+// Função de compressão fora do componente para não ser recriada a cada render
+const compressImage = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800; // Largura máxima para manter o tamanho baixo
+        const scaleSize = MAX_WIDTH / img.width;
+        
+        const finalWidth = scaleSize < 1 ? MAX_WIDTH : img.width;
+        const finalHeight = scaleSize < 1 ? img.height * scaleSize : img.height;
+
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+
+        // Converte para JPEG com 70% de qualidade
+        const base64String = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(base64String);
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 const Editor = ({ pageData, handleInputChange, setStep }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [previewMode, setPreviewMode] = useState('mobile');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleInputChange('photoUrl', reader.result);
+      try {
+        // Comprime a imagem
+        const compressedBase64 = await compressImage(file);
+        
+        // Verifica tamanho aproximado em KB
+        const sizeInBytes = 4 * Math.ceil((compressedBase64.length / 3)) * 0.5624896334383415;
+        const sizeInKb = sizeInBytes / 1024;
+
+        if (sizeInKb > 900) {
+            alert("Sr. Stark, mesmo comprimida essa imagem é muito complexa para o Firestore direto (limite de 1MB). Tente uma imagem mais simples ou menor.");
+            return;
+        }
+
+        // Atualiza o estado com a string Base64
+        handleInputChange('photoUrl', compressedBase64);
+        
+      } catch (error) {
+        console.error("Erro na compressão:", error);
+        alert("Erro ao processar a imagem.");
+      }
+    }
+  };
+
+  const handleSavePage = async () => {
+    try {
+      setIsSaving(true);
+      
+      let user = auth.currentUser;
+      if (!user) {
+        const userCred = await signInAnonymously(auth);
+        user = userCred.user;
+      }
+
+      const generatedSlug = pageData.slug || 
+        `${pageData.name1}-${pageData.name2}-${Date.now().toString().slice(-4)}`
+        .toLowerCase().replace(/\s+/g, '-');
+
+      const docData = {
+        name1: pageData.name1 || "Amor",
+        name2: pageData.name2 || "Amor",
+        startDate: pageData.startDate || new Date().toISOString(),
+        message: pageData.message || "",
+        photoUrl: pageData.photoUrl || "", 
+        spotifyUrl: pageData.spotifyUrl || "",
+        themeId: pageData.themeId || "default",
+        fontName: pageData.fontName || "sans",
+        enableStickers: pageData.enableStickers || false,
+        sticker: pageData.sticker || "❤️",
+        
+        userId: user.uid,
+        slug: generatedSlug,
+        createdAt: serverTimestamp(),
+        isPublished: true
       };
-      reader.readAsDataURL(file);
+
+      await addDoc(collection(db, "love_pages"), docData);
+
+      console.log("Página salva com sucesso!");
+      setStep('checkout');
+
+    } catch (error) {
+      console.error("Erro ao salvar página:", error);
+      if (error.message && error.message.includes("exceeds the maximum allowed size")) {
+          alert("A imagem ainda é muito grande para o banco de dados. Tente outra foto.");
+      } else {
+          alert(`Erro ao salvar: ${error.message}`);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -62,7 +162,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
             </div>
           </div>
         );
-      
+
       case 'design':
         return (
           <div className="space-y-8 animate-fade-in">
@@ -86,7 +186,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
                 ))}
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tipografia</label>
               <div className="flex gap-2">
@@ -102,7 +202,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
                 ))}
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Stickers Flutuantes</label>
@@ -126,7 +226,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
             </div>
           </div>
         );
-      
+
       case 'content':
         return (
           <div className="space-y-6 animate-fade-in">
@@ -147,7 +247,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
             </div>
           </div>
         );
-      
+
       case 'media':
         return (
           <div className="space-y-8 animate-fade-in">
@@ -155,16 +255,9 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                 <ImageIcon size={14} /> Foto do Casal
               </label>
-              
+
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={pageData.photoUrl}
-                  onChange={(e) => handleInputChange('photoUrl', e.target.value)}
-                  className="flex-1 h-12 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all text-sm truncate"
-                  placeholder="Cole a URL ou use o botão ao lado"
-                />
-                <div className="relative">
+                <div className="relative flex-1">
                   <input
                     type="file"
                     accept="image/*"
@@ -174,9 +267,9 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
                   />
                   <label
                     htmlFor="photo-upload"
-                    className="flex items-center justify-center h-12 w-12 text-rose-600 bg-rose-50 rounded-xl cursor-pointer hover:bg-rose-100 transition-colors border border-rose-200"
+                    className="flex items-center justify-center w-full h-12 text-rose-600 bg-rose-50 rounded-xl cursor-pointer hover:bg-rose-100 transition-colors border border-rose-200 gap-2 font-medium"
                   >
-                    <Upload size={20} />
+                    <Upload size={20} /> Carregar Foto (Max 1MB)
                   </label>
                 </div>
               </div>
@@ -194,7 +287,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                 <Music size={14} /> Trilha Sonora
               </label>
-              
+
               <div className="space-y-2">
                 <label className="text-[10px] font-semibold text-slate-400">SELEÇÃO RÁPIDA</label>
                 <div className="grid grid-cols-1 gap-2">
@@ -202,11 +295,10 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
                     <button
                       key={song.id}
                       onClick={() => handleInputChange('spotifyUrl', song.url)}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group ${
-                        pageData.spotifyUrl === song.url 
-                          ? 'bg-rose-50 border-rose-200 text-rose-900' 
-                          : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group ${pageData.spotifyUrl === song.url
+                        ? 'bg-rose-50 border-rose-200 text-rose-900'
+                        : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                        }`}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pageData.spotifyUrl === song.url ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                         <PlayCircle size={16} />
@@ -234,7 +326,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
             </div>
           </div>
         );
-      
+
       default:
         return null;
     }
@@ -280,11 +372,28 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
         </div>
 
         <div className="p-6 border-t border-slate-100 bg-white z-20">
-          <button
-            onClick={() => setStep('checkout')}
-            className="w-full py-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white rounded-xl font-bold text-lg shadow-xl shadow-rose-200 hover:shadow-2xl hover:shadow-rose-300 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
-            <Gift size={20} /> Finalizar Presente
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={handleSavePage}
+              disabled={isSaving}
+              className="w-full py-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white rounded-xl font-bold text-lg shadow-xl shadow-rose-200 hover:shadow-2xl hover:shadow-rose-300 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+              {isSaving ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" /> Salvando...
+                </>
+              ) : (
+                <>
+                  <Gift size={20} /> Salvar e Continuar
+                </>
+              )}
+            </button>
+
+            <div className="text-center">
+              <span className="text-xs text-slate-500 inline-flex items-center gap-1">
+                <Check size={12} /> Criação 100% gratuita
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
