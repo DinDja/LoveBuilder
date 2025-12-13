@@ -15,7 +15,7 @@ Caminhar ao seu lado, Luffy, já é o meu felizes para sempre.💖`,
         themeId: 'night',
         fontName: 'Elegant Serif',
         photoUrl: 'https://i.pinimg.com/736x/42/cb/91/42cb91bdad4ff739da889485f1255419.jpg',
-        spotifyUrl: 'https://open.spotify.com/track/2dpaYNEQHiRxtZbfNsse99?si=3875344849224422',
+        spotifyUrl: 'https://open.spotify.com/intl-pt/track/0tgVpDi06FyKpA1z0VMD4v?si=489a278282164c87',
         enableStickers: true,
         sticker: '✨'
     };

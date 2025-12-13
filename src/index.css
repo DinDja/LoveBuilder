@@ -2,9 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
+}
+
+::selection {
+  background-color: #fbcfe8;
+  /* rose-200 */
+  color: #be185d;
+  /* rose-700 */
+}
+
+::-moz-selection {
+  background-color: #fbcfe8;
+  /* rose-200 */
+  color: #be185d;
+  /* rose-700 */
+}
+
+/* Estilo específico para a landing page */
+.landing-page-text::selection {
+  background-color: #fce7f3;
+  /* rose-100 mais clarinho */
+  color: #9d174d;
+  /* rose-800 */
+}
+
+.landing-page-text::-moz-selection {
+  background-color: #fce7f3;
+  /* rose-100 mais clarinho */
+  color: #9d174d;
+  /* rose-800 */
 }

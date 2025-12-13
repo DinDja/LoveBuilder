@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Heart, 
-  Check, 
-  ArrowRight, 
-  Sparkles, 
-  Copy, 
-  Share2, 
-  Globe, 
+import {
+  Heart,
+  Check,
+  ArrowRight,
+  Sparkles,
+  Copy,
+  Share2,
+  Globe,
   QrCode,
   Calendar,
   Eye,
@@ -17,22 +17,23 @@ import {
   Star,
   ExternalLink,
   Download, // Importei o ícone de Download
-  Loader2   // Importei Loader para feedback visual
+  Loader2 ,  // Importei Loader para feedback visual
+  ArrowLeft,
 } from 'lucide-react';
 
-const Checkout = ({ pageData, slug, onBack, onFinish }) => {
+const Checkout = ({ pageData, slug, onBack, onFinish, setStep }) => {
   const [copied, setCopied] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false); // Estado de loading do download
-  
+
   const LIVE_DOMAIN = 'https://lovebuilder.netlify.app';
   const pageUrl = `${LIVE_DOMAIN}/love/${slug}`;
-  
+
   // URL da API do QR Code
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(pageUrl)}&color=334155&format=png`;
-  
+
   const whatsappMessage = `Fiz uma surpresa para você! ❤️\nVeja nossa página especial aqui: ${pageUrl}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
 
@@ -111,7 +112,7 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
       setTimeout(() => el.remove(), 5000);
     };
 
-    for(let i=0; i<30; i++) setTimeout(createParticle, i * 100);
+    for (let i = 0; i < 30; i++) setTimeout(createParticle, i * 100);
     const interval = setInterval(createParticle, 500);
     return () => clearInterval(interval);
   }, []);
@@ -143,25 +144,31 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 py-12 flex flex-col items-center">
-        
+        <button
+          onClick={() => setStep('landing')}
+          className="fixed top-6 left-6 z-50 bg-white/40 backdrop-blur-md hover:bg-white/30 text-dark p-3 rounded-full transition-all border border-white/10 group"
+          title="Voltar"
+        >
+          <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
+        </button>
         {/* Header de Sucesso */}
         <div className="text-center mb-10 animate-fade-in-up">
           <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-4 tracking-tight">
             Tudo pronto! <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-orange-600">Parabéns.</span>
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Sua página de amor foi criada e publicada com sucesso. <br className="hidden md:block"/>
+            Sua página de amor foi criada e publicada com sucesso. <br className="hidden md:block" />
             O link abaixo já está ativo e pronto para ser compartilhado.
           </p>
         </div>
 
         <div className="w-full grid lg:grid-cols-12 gap-8">
-          
+
           {/* Coluna Principal */}
           <div className="lg:col-span-8 space-y-6">
-            
+
             {/* Card do Link */}
-            <div className="glass-panel rounded-3xl p-8 premium-shadow animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+            <div className="glass-panel rounded-3xl p-8 premium-shadow animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-rose-100 rounded-lg text-rose-600">
                   <Globe size={24} />
@@ -177,7 +184,7 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     <Lock size={16} />
                   </div>
-                  <input 
+                  <input
                     readOnly
                     value={pageUrl}
                     className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition-all"
@@ -185,11 +192,10 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
                 </div>
                 <button
                   onClick={handleCopyUrl}
-                  className={`px-8 py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 min-w-[160px] shadow-lg transform active:scale-95 ${
-                    copied 
-                      ? 'bg-green-500 text-white shadow-green-200' 
+                  className={`px-8 py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 min-w-[160px] shadow-lg transform active:scale-95 ${copied
+                      ? 'bg-green-500 text-white shadow-green-200'
                       : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
-                  }`}
+                    }`}
                 >
                   {copied ? <Check size={20} /> : <Copy size={20} />}
                   {copied ? 'Copiado!' : 'Copiar'}
@@ -198,7 +204,7 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
             </div>
 
             {/* Ações Rápidas */}
-            <div className="grid sm:grid-cols-2 gap-4 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+            <div className="grid sm:grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
               <a
                 href={whatsappUrl}
                 target="_blank"
@@ -216,10 +222,10 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
             </div>
 
             {/* Card de Visualização */}
-            <div className="glass-panel rounded-3xl p-8 premium-shadow text-center animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+            <div className="glass-panel rounded-3xl p-8 premium-shadow text-center animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
               <h3 className="text-2xl font-bold text-slate-800 mb-2">Veja como ficou</h3>
               <p className="text-slate-600 mb-8">Acesse a página final como seu amor a verá.</p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={handleViewPage}
@@ -239,17 +245,17 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
           </div>
 
           {/* Coluna Lateral */}
-          <div className="lg:col-span-4 space-y-6 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-            
+          <div className="lg:col-span-4 space-y-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+
             {/* QR Code Real com Download */}
             <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100 flex flex-col items-center text-center">
               <div className="mb-4">
                 <h3 className="font-bold text-slate-800">QR Code</h3>
                 <p className="text-xs text-slate-500">Escaneie para testar no celular</p>
               </div>
-              
+
               <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-inner mb-4 relative group">
-                <img 
+                <img
                   src={qrCodeUrl}
                   alt="QR Code"
                   className="w-40 h-40 object-contain rounded-lg"
@@ -258,7 +264,7 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
 
               {/* Botões do QR Code */}
               <div className="flex flex-col gap-2 w-full">
-                <button 
+                <button
                   onClick={handleDownloadQRCode}
                   disabled={isDownloading}
                   className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
@@ -266,8 +272,8 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
                   {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                   {isDownloading ? 'Baixando...' : 'Baixar Imagem'}
                 </button>
-                
-                <button 
+
+                <button
                   onClick={() => setShowQRCode(!showQRCode)}
                   className="text-rose-600 text-xs font-semibold hover:underline mt-1"
                 >
@@ -287,7 +293,7 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
               <p className="text-slate-300 text-sm mb-4 leading-relaxed">
                 Receba ideias criativas para surpreender seu amor em datas especiais.
               </p>
-              
+
               <form onSubmit={handleEmailSubscription} className="space-y-3">
                 <div className="relative">
                   <Mail className="absolute left-3 top-3.5 text-slate-400" size={16} />
@@ -335,7 +341,7 @@ const Checkout = ({ pageData, slug, onBack, onFinish }) => {
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-center text-slate-400 text-sm animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+        <div className="mt-16 text-center text-slate-400 text-sm animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
           <p className="flex items-center justify-center gap-2">
             Feito com <Heart size={14} className="text-rose-500 fill-current" /> para casais apaixonados
           </p>

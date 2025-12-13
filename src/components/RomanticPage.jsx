@@ -65,8 +65,9 @@ const RomanticPage = ({ data, isPreview = false }) => {
         </div>
 
         {data.spotifyUrl && (
-          <div className="animate-fade-in-up w-full" style={{ animationDelay: '0.3s' }}>
-            <SpotifyPlayer url={data.spotifyUrl} theme={theme} />
+          <div className="animate-fade-in-up w-full max-w-lg mt-12" style={{ animationDelay: '0.3s' }}>
+            {/* Aqui passamos autoPlay=true */}
+            <SpotifyPlayer url={data.spotifyUrl} theme={theme} autoPlay={true} />
           </div>
         )}
       </div>

@@ -1,19 +1,55 @@
 import React from 'react';
 
-const SpotifyPlayer = ({ url, theme }) => {
+const SpotifyPlayer = ({ url, theme, autoPlay = true }) => {
   if (!url) return null;
 
   const getEmbedUrl = (rawUrl) => {
     try {
       if (!rawUrl) return null;
-      if (rawUrl.includes('/embed')) return rawUrl;
-      const match = rawUrl.match(/(track|playlist|album|artist)[/:]([a-zA-Z0-9]+)/);
-      if (match && match[1] && match[2]) {
-        const type = match[1];
-        const id = match[2];
-        return `https://open.spotify.com/embed/${type}/${id}`;
+
+      let finalUrl = rawUrl;
+      let type = 'track';
+      let id = '';
+
+      // 1. Verifica se é um PRESET do Editor (URLs terminando em números 0-4)
+      // O Editor envia "https://open.spotify.com/track/0tgVpDi06FyKpA1z0eMD4v", etc.
+      const presetMatch = rawUrl.match(/\/(\d)$/);
+      
+      if (presetMatch) {
+        const presetId = presetMatch[1];
+        const idMap = {
+          '0': '2VxeLyX666F8uXCJ0dZF8B', // Perfect - Ed Sheeran
+          '1': '3U4isOIWM3VvDubwSI3y7a', // All of Me - John Legend
+          '2': '7BqBn9nXd38hN44rF1G8PK', // Just the Way You Are - Bruno Mars
+          '3': '6lanRgr6wXibZr8KgzXxBl', // A Thousand Years - Christina Perri
+          '4': '2plIBRhlDr9zXDk8ZnPtQB', // Die With A Smile - Gaga & Bruno
+        };
+        id = idMap[presetId] || '2VxeLyX666F8uXCJ0dZF8B';
+        finalUrl = `https://open.spotify.com/embed/track/${id}`;
+      } 
+      // 2. Verifica se já é uma URL de Embed pronta
+      else if (rawUrl.includes('/embed')) {
+        finalUrl = rawUrl;
       }
-      return rawUrl;
+      // 3. Verifica URLs normais (link de compartilhamento ou URI)
+      else {
+        const match = rawUrl.match(/(track|playlist|album|artist)[/:]([a-zA-Z0-9]+)/);
+        if (match && match[1] && match[2]) {
+          type = match[1];
+          id = match[2];
+          finalUrl = `https://open.spotify.com/embed/${type}/${id}`;
+        }
+      }
+
+      // 4. Adiciona o Autoplay
+      if (autoPlay) {
+        // Verifica se a URL já tem parâmetros (?) para usar & ou ?
+        const separator = finalUrl.includes('?') ? '&' : '?';
+        finalUrl += `${separator}autoplay=1`;
+      }
+
+      return finalUrl;
+
     } catch (e) {
       console.error("Erro ao processar URL do Spotify", e);
       return rawUrl;

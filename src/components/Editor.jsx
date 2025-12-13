@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, Smartphone, Laptop, Lock, Upload, PlayCircle, Loader2 } from 'lucide-react';
+import { 
+  Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, 
+  Smartphone, Laptop, Lock, Upload, PlayCircle, Loader2, 
+  Eye, Edit3 
+} from 'lucide-react';
 import RomanticPage from './RomanticPage';
 import { FONTS, THEMES, STICKERS } from '../data/constants';
 import { db, auth } from '../firebase/config';
@@ -7,12 +11,22 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 
 const MUSIC_PRESETS = [
-  { id: 1, name: "Perfect", artist: "Ed Sheeran", url: "https://open.spotify.com/track/0tgVpDi06FyKpA1z0eMD4v" },
-  { id: 2, name: "All of Me", artist: "John Legend", url: "https://open.spotify.com/track/3U4isOIWM3VvDubwSI3y7a" },
-  { id: 3, name: "Just the Way You Are", artist: "Bruno Mars", url: "https://open.spotify.com/track/7BqBn9nXd69PGCnZRODT0p" },
-  { id: 4, name: "A Thousand Years", artist: "Christina Perri", url: "https://open.spotify.com/track/6lanRgr6wXibZr8KincXXk" },
-  { id: 5, name: "Die With A Smile", artist: "Lady Gaga, Bruno Mars", url: "https://open.spotify.com/track/2plIBRhlDr9GnrPNUeYf5w" }
+  { id: 1, name: "Perfect", artist: "Ed Sheeran", url: "https://open.spotify.com/intl-pt/track/0tgVpDi06FyKpA1z0VMD4v?si=489a278282164c87" },
+  { id: 2, name: "All of Me", artist: "John Legend", url: "https://open.spotify.com/intl-pt/track/3U4isOIWM3VvDubwSI3y7a?si=7665e4c0ad474e0f" },
+  { id: 3, name: "Just the Way You Are", artist: "Bruno Mars", url: "https://open.spotify.com/intl-pt/track/47Slg6LuqLaX0VodpSCvPt?si=4a8e21c373624272" },
+  { id: 4, name: "A Thousand Years", artist: "Christina Perri", url: "https://open.spotify.com/intl-pt/track/6lanRgr6wXibZr8KgzXxBl?si=9fcdf360f58b4e2a" },
+  { id: 5, name: "Die With A Smile", artist: "Lady Gaga, Bruno Mars", url: "https://open.spotify.com/intl-pt/track/2plbrEY59IikOBgBGLjaoe?si=95a5fa07a03749ae" },
+
+  // Adições
+  { id: 6, name: "Thinking Out Loud", artist: "Ed Sheeran", url: "https://open.spotify.com/intl-pt/track/34gCuhDGsG4bRPIf9bb02f?si=28831dd1a99b4940" },
+  { id: 7, name: "Until I Found You", artist: "Stephen Sanchez", url: "https://open.spotify.com/intl-pt/track/0T5iIrXA4p5GsubkhuBIKV?si=5aabeeb4d67b447a" },
+  { id: 8, name: "Make You Feel My Love", artist: "Adele", url: "https://open.spotify.com/intl-pt/track/5FgPwJ7Nh2FVmIXviKl2VF?si=8aea5c9005264420" },
+  { id: 9, name: "Can't Help Falling in Love", artist: "Elvis Presley", url: "https://open.spotify.com/intl-pt/track/44AyOl4qVkzS48vBsbNXaC?si=b6e7bb93add54ad0" },
+  { id: 10, name: "Say You Won’t Let Go", artist: "James Arthur", url: "https://open.spotify.com/intl-pt/track/5uCax9HTNlzGybIStD3vDh?si=2bcd31d4d5734c5d" },
+  { id: 11, name: "Photograph", artist: "Ed Sheeran", url: "https://open.spotify.com/intl-pt/track/1HNkqx9Ahdgi1Ixy2xkKkL?si=894c522fd6b5432c" },
+  { id: 12, name: "Lucky", artist: "Jason Mraz, Colbie Caillat", url: "https://open.spotify.com/intl-pt/track/0IktbUcnAGrvD03AWnz3Q8?si=c5ef417b77324cd4" }
 ];
+
 
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
@@ -40,11 +54,13 @@ const compressImage = (file) => {
   });
 };
 
-// Recebendo onPageCreated nas props
 const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [previewMode, setPreviewMode] = useState('mobile');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 'editor' exibe o formulário, 'preview' exibe o resultado
+  const [mobileView, setMobileView] = useState('editor');
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -52,7 +68,6 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
       try {
         const compressedBase64 = await compressImage(file);
         const sizeInBytes = 4 * Math.ceil((compressedBase64.length / 3)) * 0.5624896334383415;
-        // Limite seguro de ~950KB para Firestore
         if ((sizeInBytes / 1024) > 950) {
           alert("Imagem muito grande. Tente uma menor.");
           return;
@@ -74,7 +89,6 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
         user = userCred.user;
       }
 
-      // Gera Slug Sanitizado
       const rawSlug = pageData.slug || `${pageData.name1}-${pageData.name2}-${Date.now().toString().slice(-4)}`;
       const generatedSlug = rawSlug
         .toLowerCase()
@@ -103,11 +117,9 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
 
       await addDoc(collection(db, "love_pages"), docData);
 
-      // --- CORREÇÃO: Chama a função unificada do App ---
       if (onPageCreated) {
         onPageCreated(generatedSlug);
       } else {
-        // Fallback se a prop não for passada (para evitar travamento)
         if (setStep) setStep('checkout');
       }
 
@@ -123,7 +135,7 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
     switch (activeTab) {
       case 'basic':
         return (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6 animate-fade-in pb-20 lg:pb-0">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Seu Nome</label>
@@ -158,7 +170,7 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
 
       case 'design':
         return (
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in pb-20 lg:pb-0">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tema Visual</label>
               <div className="grid grid-cols-1 gap-3">
@@ -222,7 +234,7 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
 
       case 'content':
         return (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6 animate-fade-in pb-20 lg:pb-0">
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Declaração</label>
               <div className="relative">
@@ -243,7 +255,7 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
 
       case 'media':
         return (
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in pb-20 lg:pb-0">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                 <ImageIcon size={14} /> Foto do Casal
@@ -326,9 +338,15 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
-      <div className="w-full lg:w-[450px] bg-white flex flex-col h-full shadow-[20px_0_40px_rgba(0,0,0,0.05)] z-20 relative">
-        <div className="h-20 px-8 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
+    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans flex-col lg:flex-row">
+      
+      {/* --- SIDEBAR (EDITOR) --- */}
+      <div className={`w-full lg:w-[450px] bg-white flex flex-col h-full shadow-[20px_0_40px_rgba(0,0,0,0.05)] z-20 relative transition-all duration-300 ${
+        mobileView === 'editor' ? 'flex' : 'hidden lg:flex'
+      }`}>
+        
+        {/* Header do Editor */}
+        <div className="h-20 px-6 lg:px-8 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-2 text-slate-800 font-bold text-lg">
             <div className="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center text-white">
               <Heart size={16} fill="currentColor" />
@@ -340,8 +358,9 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
           </button>
         </div>
 
-        <div className="px-8 pt-6 pb-2">
-          <div className="flex p-1 bg-slate-100 rounded-xl">
+        {/* Tabs */}
+        <div className="px-4 lg:px-8 pt-6 pb-2">
+          <div className="flex p-1 bg-slate-100 rounded-xl overflow-x-auto no-scrollbar">
             {[
               { id: 'basic', icon: <Heart size={14} />, label: 'Início' },
               { id: 'design', icon: <Palette size={14} />, label: 'Estilo' },
@@ -351,8 +370,11 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${activeTab === tab.id ? 'bg-white text-rose-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? 'bg-white text-rose-600 shadow-sm ring-1 ring-black/5' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
                 {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
               </button>
@@ -360,11 +382,13 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
+        {/* Form Content */}
+        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 custom-scrollbar">
           {renderTabContent()}
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-white z-20">
+        {/* Footer Actions */}
+        <div className="p-4 lg:p-6 border-t border-slate-100 bg-white z-20 mb-[60px] lg:mb-0">
           <div className="space-y-3">
             <button
               onClick={handleSavePage}
@@ -390,10 +414,14 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
         </div>
       </div>
 
-      <div className="flex-1 bg-slate-100 relative flex flex-col items-center justify-center p-4 lg:p-8 overflow-hidden transition-all duration-500">
+      {/* --- PREVIEW AREA --- */}
+      <div className={`flex-1 bg-slate-100 relative flex-col items-center justify-center p-0 lg:p-8 overflow-hidden transition-all duration-500 ${
+        mobileView === 'preview' ? 'flex' : 'hidden lg:flex'
+      }`}>
         <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-white p-1 rounded-full shadow-lg border border-slate-100 flex gap-1">
+        {/* Desktop Toggle */}
+        <div className="hidden lg:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-white p-1 rounded-full shadow-lg border border-slate-100 gap-1">
           <button
             onClick={() => setPreviewMode('mobile')}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${previewMode === 'mobile'
@@ -414,31 +442,67 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
           </button>
         </div>
 
-        {previewMode === 'mobile' ? (
-          <div className="relative w-full max-w-[380px] h-[750px] bg-slate-900 rounded-[55px] shadow-[0_0_0_12px_#1e293b,0_0_0_14px_#475569,0_50px_100px_-20px_rgba(0,0,0,0.5)] border-[8px] border-slate-900 overflow-hidden z-10 animate-fade-in-up">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[30px] w-[140px] bg-black rounded-b-3xl z-50"></div>
-            <div className="w-full h-full bg-white overflow-y-auto scrollbar-hide">
-              <RomanticPage data={pageData} isPreview={true} />
-            </div>
-          </div>
-        ) : (
-          <div className="relative w-full max-w-6xl h-[90%] bg-white rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] border border-slate-200 overflow-hidden z-10 flex flex-col animate-fade-in-up">
-            <div className="h-10 bg-slate-100 border-b border-slate-200 flex items-center px-4 gap-4">
-              <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400 border border-red-500"></div>
-                <div className="w-3 h-3 rounded-full bg-amber-400 border border-amber-500"></div>
-                <div className="w-3 h-3 rounded-full bg-green-400 border border-green-500"></div>
-              </div>
-              <div className="flex-1 max-w-xl mx-auto bg-white border border-slate-200 rounded-md h-7 flex items-center justify-center text-[10px] text-slate-400 gap-2">
-                <Lock size={8} /> lovebuilder.netlify.app/{pageData.name1.toLowerCase()}-{pageData.name2.toLowerCase()}
+        {/* Mobile Real View (CORREÇÃO DE ROLAGEM APLICADA AQUI) */}
+        <div className="lg:hidden w-full h-full overflow-y-auto pb-[100px] animate-fade-in relative z-10 custom-scrollbar">
+           <RomanticPage data={pageData} isPreview={true} />
+        </div>
+
+        {/* Desktop Device Frames */}
+        <div className="hidden lg:block relative w-full h-full flex items-center justify-center z-10">
+          {previewMode === 'mobile' ? (
+            <div className="relative w-full max-w-[380px] h-[750px] bg-slate-900 rounded-[55px] shadow-[0_0_0_12px_#1e293b,0_0_0_14px_#475569,0_50px_100px_-20px_rgba(0,0,0,0.5)] border-[8px] border-slate-900 overflow-hidden animate-fade-in-up">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[30px] w-[140px] bg-black rounded-b-3xl z-50"></div>
+              <div className="w-full h-full bg-white overflow-y-auto scrollbar-hide">
+                <RomanticPage data={pageData} isPreview={true} />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <RomanticPage data={pageData} isPreview={true} />
+          ) : (
+            <div className="relative w-full max-w-6xl h-[90%] bg-white rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] border border-slate-200 overflow-hidden flex flex-col animate-fade-in-up">
+              <div className="h-10 bg-slate-100 border-b border-slate-200 flex items-center px-4 gap-4">
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-400 border border-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-400 border border-amber-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-400 border border-green-500"></div>
+                </div>
+                <div className="flex-1 max-w-xl mx-auto bg-white border border-slate-200 rounded-md h-7 flex items-center justify-center text-[10px] text-slate-400 gap-2">
+                  <Lock size={8} /> lovebuilder.netlify.app/{pageData.name1.toLowerCase()}-{pageData.name2.toLowerCase()}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <RomanticPage data={pageData} isPreview={true} />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* --- MOBILE BOTTOM NAVIGATION --- */}
+      <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 pb-safe z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-around items-center h-16">
+          <button
+            onClick={() => setMobileView('editor')}
+            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
+              mobileView === 'editor' ? 'text-rose-600' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Edit3 size={22} strokeWidth={mobileView === 'editor' ? 2.5 : 2} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Editar</span>
+          </button>
+
+          <div className="w-[1px] h-8 bg-slate-100"></div>
+
+          <button
+            onClick={() => setMobileView('preview')}
+            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
+              mobileView === 'preview' ? 'text-rose-600' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Eye size={22} strokeWidth={mobileView === 'preview' ? 2.5 : 2} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Visualizar</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 };

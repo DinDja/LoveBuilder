@@ -12,13 +12,13 @@ export default function App() {
   const [currentSlug, setCurrentSlug] = useState(null);
 
   const [pageData, setPageData] = useState({
-    name1: '',
-    name2: '',
+    name1: 'Luffy',
+    name2: 'Boa',
     startDate: new Date().toISOString().slice(0, 16),
     message: 'Escreva sua mensagem especial aqui...\n\nPrometo te amar em todas as versões de nós mesmos que ainda vamos conhecer. 💖',
     themeId: 'rose',
     fontName: 'Modern Sans',
-    spotifyUrl: '',
+    spotifyUrl: 'https://open.spotify.com/intl-pt/track/0tgVpDi06FyKpA1z0VMD4v?si=489a278282164c87',
     photoUrl: '',
     enableStickers: true,
     sticker: '❤️'
@@ -86,6 +86,7 @@ export default function App() {
             slug={currentSlug || pageData.slug}
             onBack={() => setStep('builder')}
             onFinish={() => setStep('view')}
+            setStep={setStep}
           />
         );
       case "example":
