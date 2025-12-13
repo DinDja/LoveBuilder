@@ -10,7 +10,9 @@ import {
   limit, 
   serverTimestamp,
   doc,
-  deleteDoc
+  deleteDoc,
+  updateDoc,
+  increment
 } from 'firebase/firestore';
 
 export const useLovePage = () => {
@@ -18,7 +20,6 @@ export const useLovePage = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(null);
   const [userPages, setUserPages] = useState([]); 
-  // Novo estado para páginas públicas
   const [publicPages, setPublicPages] = useState([]);
 
   // 1. Criar Página
@@ -39,6 +40,7 @@ export const useLovePage = () => {
         slug: finalSlug,
         createdAt: serverTimestamp(),
         views: 0,
+        likes: 0,
         isPublished: true 
       };
 
@@ -56,7 +58,7 @@ export const useLovePage = () => {
     }
   }, []);
 
-  // 2. Carregar Páginas do Usuário (Minhas Páginas)
+  // 2. Carregar Páginas do Usuário
   const loadUserPages = useCallback(async (userId) => {
     if (!userId) return;
     
@@ -77,8 +79,7 @@ export const useLovePage = () => {
       setUserPages(pages);
       return { success: true, pages };
     } catch (err) {
-      console.error("Erro índice usuário:", err);
-      // Fallback sem ordenação se falhar índice
+      // Fallback sem ordenação
       try {
         const q2 = query(collection(db, 'love_pages'), where('userId', '==', userId));
         const snap2 = await getDocs(q2);
@@ -92,7 +93,7 @@ export const useLovePage = () => {
     }
   }, []);
 
-  // 3. NOVO: Carregar Páginas Públicas (Explorar)
+  // 3. Carregar Páginas Públicas
   const getPublicPages = useCallback(async () => {
     setLoading(true);
     try {
@@ -100,7 +101,7 @@ export const useLovePage = () => {
         collection(db, 'love_pages'),
         where('isPublished', '==', true),
         orderBy('createdAt', 'desc'),
-        limit(20) // Limite de 20 para não pesar
+        limit(20)
       );
       
       const querySnapshot = await getDocs(q);
@@ -112,7 +113,6 @@ export const useLovePage = () => {
       setPublicPages(pages);
       return { success: true, pages };
     } catch (err) {
-      console.error("Erro ao carregar públicas (verifique índices):", err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -135,7 +135,7 @@ export const useLovePage = () => {
     }
   }, []);
 
-  // 5. Carregar Populares (Limitado)
+  // 5. Carregar Populares
   const loadPopularPages = useCallback(async (limitCount = 3) => {
     setLoading(true);
     try {
@@ -154,22 +154,71 @@ export const useLovePage = () => {
     }
   }, []);
 
-  // 6. Carregar por Slug
+  // 6. Carregar por Slug (Viewer)
   const getPageBySlug = useCallback(async (slug) => {
+    console.log("Hook: getPageBySlug chamado para:", slug);
     setLoading(true);
+    setError(null);
     try {
-      const q = query(collection(db, 'love_pages'), where('slug', '==', slug));
-      const snap = await getDocs(q);
+      // Tenta buscar pública primeiro
+      let q = query(
+        collection(db, 'love_pages'), 
+        where('slug', '==', slug),
+        where('isPublished', '==', true) 
+      );
+      let snap = await getDocs(q);
+
+      // Se falhar, tenta buscar como dono (sem filtro isPublished)
+      if (snap.empty) {
+        console.log("Hook: Não achou pública, tentando como dono...");
+        const qOwner = query(
+          collection(db, 'love_pages'), 
+          where('slug', '==', slug)
+        );
+        snap = await getDocs(qOwner);
+      }
+
       if (!snap.empty) {
-        const page = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        const docData = snap.docs[0];
+        const page = { id: docData.id, ...docData.data() };
+        
+        // Incrementa visualização (agora permitido pelas novas regras)
+        try {
+            const pageRef = doc(db, 'love_pages', docData.id);
+            updateDoc(pageRef, { views: increment(1) });
+        } catch (e) { console.warn("View não contada:", e); }
+
         setCurrentPage(page);
         return { success: true, page };
-      }
-      return { success: false, error: 'Não encontrado' };
+      } 
+      
+      console.log("Hook: Página não encontrada em lugar nenhum.");
+      setError('Página não encontrada');
+      return { success: false, error: 'Não encontrada' };
+
     } catch (err) {
+      console.error("Hook Error:", err);
+      if (err.message.includes("permission")) {
+         setError("Acesso restrito.");
+      } else {
+         setError(err.message);
+      }
       return { success: false, error: err.message };
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // 7. Dar Like (NOVA FUNÇÃO ESSENCIAL)
+  const likePage = useCallback(async (pageId) => {
+    console.log("Hook: likePage chamado para ID:", pageId);
+    try {
+      const pageRef = doc(db, 'love_pages', pageId);
+      await updateDoc(pageRef, { likes: increment(1) });
+      return { success: true };
+    } catch (err) {
+      console.error("Erro ao dar like:", err);
+      return { success: false, error: err.message };
     }
   }, []);
 
@@ -178,12 +227,13 @@ export const useLovePage = () => {
     error,
     currentPage,
     userPages,
-    publicPages, // Exportando estado público
+    publicPages,
     createPage,
     loadUserPages,
-    getPublicPages, // Exportando função pública
+    getPublicPages,
     deletePage,
     loadPopularPages,
-    getPageBySlug
+    getPageBySlug,
+    likePage // GARANTIDO QUE ESTÁ AQUI
   };
 };

@@ -14,7 +14,6 @@ const MUSIC_PRESETS = [
   { id: 5, name: "Die With A Smile", artist: "Lady Gaga, Bruno Mars", url: "https://open.spotify.com/track/2plIBRhlDr9GnrPNUeYf5w" }
 ];
 
-// Função de compressão fora do componente para não ser recriada a cada render
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -24,19 +23,14 @@ const compressImage = (file) => {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; // Largura máxima para manter o tamanho baixo
+        const MAX_WIDTH = 800;
         const scaleSize = MAX_WIDTH / img.width;
-        
         const finalWidth = scaleSize < 1 ? MAX_WIDTH : img.width;
         const finalHeight = scaleSize < 1 ? img.height * scaleSize : img.height;
-
         canvas.width = finalWidth;
         canvas.height = finalHeight;
-
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
-
-        // Converte para JPEG com 70% de qualidade
         const base64String = canvas.toDataURL('image/jpeg', 0.7);
         resolve(base64String);
       };
@@ -46,7 +40,8 @@ const compressImage = (file) => {
   });
 };
 
-const Editor = ({ pageData, handleInputChange, setStep }) => {
+// Recebendo onPageCreated nas props
+const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [previewMode, setPreviewMode] = useState('mobile');
   const [isSaving, setIsSaving] = useState(false);
@@ -55,24 +50,16 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
     const file = e.target.files[0];
     if (file) {
       try {
-        // Comprime a imagem
         const compressedBase64 = await compressImage(file);
-        
-        // Verifica tamanho aproximado em KB
         const sizeInBytes = 4 * Math.ceil((compressedBase64.length / 3)) * 0.5624896334383415;
-        const sizeInKb = sizeInBytes / 1024;
-
-        if (sizeInKb > 900) {
-            alert("Sr. Stark, mesmo comprimida essa imagem é muito complexa para o Firestore direto (limite de 1MB). Tente uma imagem mais simples ou menor.");
-            return;
+        // Limite seguro de ~950KB para Firestore
+        if ((sizeInBytes / 1024) > 950) {
+          alert("Imagem muito grande. Tente uma menor.");
+          return;
         }
-
-        // Atualiza o estado com a string Base64
         handleInputChange('photoUrl', compressedBase64);
-        
       } catch (error) {
         console.error("Erro na compressão:", error);
-        alert("Erro ao processar a imagem.");
       }
     }
   };
@@ -80,47 +67,53 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
   const handleSavePage = async () => {
     try {
       setIsSaving(true);
-      
+
       let user = auth.currentUser;
       if (!user) {
         const userCred = await signInAnonymously(auth);
         user = userCred.user;
       }
 
-      const generatedSlug = pageData.slug || 
-        `${pageData.name1}-${pageData.name2}-${Date.now().toString().slice(-4)}`
-        .toLowerCase().replace(/\s+/g, '-');
+      // Gera Slug Sanitizado
+      const rawSlug = pageData.slug || `${pageData.name1}-${pageData.name2}-${Date.now().toString().slice(-4)}`;
+      const generatedSlug = rawSlug
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-');
 
       const docData = {
         name1: pageData.name1 || "Amor",
         name2: pageData.name2 || "Amor",
         startDate: pageData.startDate || new Date().toISOString(),
         message: pageData.message || "",
-        photoUrl: pageData.photoUrl || "", 
+        photoUrl: pageData.photoUrl || "",
         spotifyUrl: pageData.spotifyUrl || "",
         themeId: pageData.themeId || "default",
         fontName: pageData.fontName || "sans",
-        enableStickers: pageData.enableStickers || false,
+        enableStickers: pageData.enableStickers !== false,
         sticker: pageData.sticker || "❤️",
-        
         userId: user.uid,
         slug: generatedSlug,
         createdAt: serverTimestamp(),
+        views: 0,
+        likes: 0,
         isPublished: true
       };
 
       await addDoc(collection(db, "love_pages"), docData);
 
-      console.log("Página salva com sucesso!");
-      setStep('checkout');
+      // --- CORREÇÃO: Chama a função unificada do App ---
+      if (onPageCreated) {
+        onPageCreated(generatedSlug);
+      } else {
+        // Fallback se a prop não for passada (para evitar travamento)
+        if (setStep) setStep('checkout');
+      }
 
     } catch (error) {
-      console.error("Erro ao salvar página:", error);
-      if (error.message && error.message.includes("exceeds the maximum allowed size")) {
-          alert("A imagem ainda é muito grande para o banco de dados. Tente outra foto.");
-      } else {
-          alert(`Erro ao salvar: ${error.message}`);
-      }
+      console.error("Erro ao salvar:", error);
+      alert(`Erro ao salvar: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
