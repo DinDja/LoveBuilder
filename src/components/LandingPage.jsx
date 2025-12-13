@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid, Settings, ChevronDown } from 'lucide-react';
+import { Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid, Settings, ChevronDown, Eye, ArrowRight, User, Quote } from 'lucide-react';
 import { useLovePage } from '../hooks/useLovePage';
 import AuthModal from './AuthModal';
 // --- IMPORTAÇÕES ADICIONAIS NECESSÁRIAS ---
-import { auth } from '../firebase/config'; // Sua configuração do firebase
+import { auth } from '../firebase/config';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
-const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamos gerenciar aqui
+const LandingPage = ({ setStep }) => {
   const { loadPopularPages } = useLovePage();
   const [popularPages, setPopularPages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,12 +18,9 @@ const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamo
 
   // --- EFEITO PARA MONITORAR AUTENTICAÇÃO ---
   useEffect(() => {
-    // Esse listener dispara automaticamente sempre que o usuário loga ou desloga
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
     });
-
-    // Limpa o listener quando o componente desmonta
     return () => unsubscribe();
   }, []);
 
@@ -31,7 +28,6 @@ const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamo
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      // O listener acima vai setar currentUser como null automaticamente
       setShowUserMenu(false);
     } catch (error) {
       console.error("Erro ao sair", error);
@@ -74,8 +70,6 @@ const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamo
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={() => {
-          // Não precisamos passar o user aqui manualmente, 
-          // o onAuthStateChanged vai capturar a mudança automaticamente
           setIsAuthModalOpen(false);
         }}
       />
@@ -337,76 +331,116 @@ const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamo
           </div>
         </div>
       </div>
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-800 mb-4">
-              Páginas de Amor Criadas Recentemente
+
+      {/* --- SEÇÃO DE PÁGINAS POPULARES (DESIGN NOVO) --- */}
+      <section className="py-24 bg-slate-50 relative overflow-hidden">
+        {/* Elementos decorativos de fundo */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 text-rose-200 opacity-20 transform rotate-12"><Heart size={100} fill="currentColor" /></div>
+          <div className="absolute bottom-20 right-10 text-purple-200 opacity-20 transform -rotate-12"><Heart size={120} fill="currentColor" /></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <span className="inline-block py-1 px-3 rounded-full bg-rose-100 text-rose-600 text-xs font-bold tracking-wider uppercase mb-3">Inspiração</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
+              Histórias de Amor Reais
             </h2>
-            <p className="text-slate-600">
-              Veja como outros casais estão expressando seu amor
+            <p className="text-slate-600 max-w-2xl mx-auto text-lg">
+              Veja como outros casais estão eternizando seus momentos mais especiais.
             </p>
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <Loader className="w-8 h-8 animate-spin text-rose-600 mx-auto" />
-              <p className="mt-2 text-slate-600">Carregando páginas...</p>
+            <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-slate-100 max-w-3xl mx-auto">
+              <Loader className="w-12 h-12 animate-spin text-rose-600 mx-auto mb-4" />
+              <p className="text-slate-500 font-medium">Buscando histórias inspiradoras...</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-8">
               {popularPages.length > 0 ? (
                 popularPages.map((page) => (
-                  <div key={page.id} className="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-xl transition-shadow">
-                    <div className="aspect-video bg-slate-100 relative">
+                  <div key={page.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 hover:border-rose-100 transform hover:-translate-y-2">
+
+                    {/* Imagem com Overlay e Zoom */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-200">
                       {page.photoUrl ? (
                         <img
                           src={page.photoUrl}
                           alt={`${page.name1} e ${page.name2}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f1f5f9"/><text x="200" y="150" font-family="Arial" font-size="20" text-anchor="middle" fill="%2394a3b8">❤️</text></svg>';
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex'; // Mostra o fallback
                           }}
                         />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                          <Heart size={32} />
+                      ) : null}
+
+                      {/* Fallback caso não tenha imagem */}
+                      <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-rose-100 to-orange-100 ${page.photoUrl ? 'hidden' : 'flex'}`}>
+                        <div className="text-center">
+                          <div className="flex justify-center -space-x-4 mb-3">
+                            <div className="w-12 h-12 rounded-full bg-rose-300 border-2 border-white flex items-center justify-center text-white font-bold text-xl">{page.name1[0]}</div>
+                            <div className="w-12 h-12 rounded-full bg-orange-300 border-2 border-white flex items-center justify-center text-white font-bold text-xl">{page.name2[0]}</div>
+                          </div>
+                          <Heart className="w-8 h-8 text-rose-400 mx-auto animate-pulse" fill="currentColor" />
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                        <div>
-                          <h3 className="text-white font-bold text-xl">
-                            {page.name1} & {page.name2}
-                          </h3>
-                          <p className="text-rose-200 text-sm">
-                            {page.views || 0} visualizações
-                          </p>
+                      </div>
+
+                      {/* Gradiente de proteção para texto (opcional) */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                      {/* Badges Flutuantes (Views & LIKES) */}
+                      <div className="absolute top-4 right-4 flex flex-col gap-2">
+                        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm text-xs font-bold text-slate-700">
+                          <Eye size={14} className="text-blue-500" />
+                          {page.views || 0}
+                        </div>
+                        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm text-xs font-bold text-slate-700">
+                          <Heart size={14} className="text-rose-500" fill="#f43f5e" />
+                          {page.likes || 0}
                         </div>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <p className="text-slate-600 text-sm line-clamp-2 mb-3">
-                        {page.message?.substring(0, 100) || 'Uma linda história de amor...'}...
-                      </p>
+
+                    {/* Conteúdo do Card */}
+                    <div className="p-6 relative">
+                      <h3 className="text-xl font-extrabold text-slate-800 mb-2 group-hover:text-rose-600 transition-colors flex items-center gap-2">
+                        {page.name1} <span className="text-rose-400 text-sm">&</span> {page.name2}
+                      </h3>
+
+                      <div className="relative mb-6">
+                        <span className="absolute -top-2 -left-2 text-4xl text-rose-100 font-serif"><Quote /></span>
+                        <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 pl-2 relative z-10 italic">
+                          {page.message || 'Uma linda história de amor começando agora...'}
+                        </p>
+                      </div>
+
                       <a
                         href={`/love/${page.slug}`}
-                        className="text-rose-600 hover:text-rose-700 text-sm font-semibold"
+                        className="inline-flex items-center gap-2 text-sm font-bold text-rose-600 hover:text-rose-700 transition-colors group/link"
                       >
-                        Ver página completa →
+                        Ver História Completa
+                        <ArrowRight size={16} className="transform transition-transform group-hover/link:translate-x-1" />
                       </a>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="col-span-3 text-center py-12">
-                  <Heart className="w-12 h-12 text-rose-200 mx-auto mb-4" />
-                  <p className="text-slate-600">Ainda não há páginas para mostrar. Seja o primeiro!</p>
+                <div className="col-span-3 py-20 text-center bg-white rounded-3xl shadow-sm border border-slate-100">
+                  <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Heart className="w-10 h-10 text-rose-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Seja o primeiro!</h3>
+                  <p className="text-slate-600 mb-8 max-w-md mx-auto">
+                    Ainda não há páginas em destaque. Crie a sua agora e apareça aqui para inspirar outros casais.
+                  </p>
                   <button
                     onClick={() => setStep('builder')}
-                    className="mt-4 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors"
+                    className="px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-200 transition-all transform hover:-translate-y-1"
                   >
-                    Criar Primeira Página
+                    Criar Minha Página
                   </button>
                 </div>
               )}
@@ -414,6 +448,7 @@ const LandingPage = ({ setStep }) => { // Removi user e onLogout das props, vamo
           )}
         </div>
       </section>
+
       {/* Features Section */}
       <section className="bg-white py-20 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-10">

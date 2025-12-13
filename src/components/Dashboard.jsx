@@ -1,40 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Heart,
-  Eye,
-  Share2,
-  Copy,
-  Edit,
-  Trash2,
-  Plus,
-  ExternalLink,
-  Check,
-  Calendar,
-  ArrowLeft,
-  Loader2,
-  Globe,
-  LayoutGrid
+import { 
+  Heart, 
+  Eye, 
+  Share2, 
+  Copy, 
+  Edit, 
+  Trash2, 
+  Plus, 
+  ExternalLink, 
+  Check, 
+  Calendar, 
+  ArrowLeft, 
+  Loader2, 
+  Globe, 
+  LayoutGrid,
+  QrCode, // Novo ícone
+  X,      // Novo ícone
+  Download // Novo ícone
 } from 'lucide-react';
 import { useLovePage } from '../hooks/useLovePage';
 import { useAuth } from '../hooks/useAuth';
 
 const Dashboard = ({ onBack, onCreateNew, setStep }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('mine'); // 'mine' ou 'explore'
+  const [activeTab, setActiveTab] = useState('mine'); 
+  
+  // Estado para controlar qual QR Code está sendo exibido
+  const [qrCodePage, setQrCodePage] = useState(null); 
+  const [isDownloadingQr, setIsDownloadingQr] = useState(false);
 
-  // Desestruturando tudo do hook
-  const {
-    userPages = [],
-    publicPages = [], // Páginas da comunidade
-    loadUserPages,
-    getPublicPages, // Função para buscar comunidade
-    deletePage,
-    loading
+  const { 
+    userPages = [], 
+    publicPages = [], 
+    loadUserPages, 
+    getPublicPages, 
+    deletePage, 
+    loading 
   } = useLovePage();
-
+  
   const [copied, setCopied] = useState(false);
 
-  // Carrega dados baseados na aba ativa
   useEffect(() => {
     if (activeTab === 'mine' && user?.uid) {
       loadUserPages(user.uid);
@@ -80,55 +85,113 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
     }
   };
 
-  // Define qual lista mostrar
-  const displayPages = activeTab === 'mine'
+  // Função para baixar o QR Code
+  const handleDownloadQr = async (slug) => {
+    try {
+      setIsDownloadingQr(true);
+      const url = `${window.location.origin}/love/${slug}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}&color=334155&format=png`;
+      
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      const tempUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = tempUrl;
+      link.download = `qrcode-${slug}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(tempUrl);
+    } catch (error) {
+      console.error('Erro ao baixar', error);
+      alert('Erro ao baixar imagem');
+    } finally {
+      setIsDownloadingQr(false);
+    }
+  };
+
+  const displayPages = activeTab === 'mine' 
     ? (Array.isArray(userPages) ? userPages : [])
     : (Array.isArray(publicPages) ? publicPages : []);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans animate-fade-in">
+    <div className="min-h-screen bg-slate-50 font-sans animate-fade-in relative">
+      
+      {/* --- MODAL DE QR CODE --- */}
+      {qrCodePage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative border border-white/20">
+            <button 
+              onClick={() => setQrCodePage(null)}
+              className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
+            >
+              <X size={20} className="text-slate-500" />
+            </button>
+
+            <div className="text-center mb-6 mt-2">
+              <h3 className="text-xl font-bold text-slate-800">QR Code</h3>
+              <p className="text-sm text-slate-500">Escaneie para acessar a página</p>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-center mb-6">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/love/${qrCodePage.slug}`)}&color=334155`}
+                alt="QR Code"
+                className="w-48 h-48 object-contain rounded-lg"
+              />
+            </div>
+
+            <button
+              onClick={() => handleDownloadQr(qrCodePage.slug)}
+              disabled={isDownloadingQr}
+              className="w-full py-3 bg-slate-900 hover:bg-black text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70"
+            >
+              {isDownloadingQr ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+              {isDownloadingQr ? 'Baixando...' : 'Baixar Imagem'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-slate-100 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <button
+            <button 
               onClick={handleBack}
               className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
               title="Voltar"
             >
               <ArrowLeft size={20} />
             </button>
-
-            {/* Tabs de Navegação */}
+            
             <div className="flex bg-slate-100 p-1 rounded-xl">
               <button
                 onClick={() => setActiveTab('mine')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'mine'
-                    ? 'bg-white text-rose-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === 'mine' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
                 <LayoutGrid size={16} /> Meu Painel
               </button>
               <button
                 onClick={() => setActiveTab('explore')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'explore'
-                    ? 'bg-white text-rose-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === 'explore' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
                 <Globe size={16} /> Explorar
               </button>
             </div>
           </div>
-
+          
           <div className="flex items-center gap-4 w-full md:w-auto justify-end">
             <div className="hidden md:block text-sm text-slate-600 text-right">
               <p className="text-xs text-slate-400">Logado como</p>
               <span className="font-semibold block">{user?.displayName || user?.email?.split('@')[0]}</span>
             </div>
             {user?.photoURL && (
-              <img src={user.photoURL} alt="User" className="w-10 h-10 rounded-full border border-slate-200" />
+                <img src={user.photoURL} alt="User" className="w-10 h-10 rounded-full border border-slate-200" />
             )}
             <button
               onClick={handleCreateNew}
@@ -141,7 +204,7 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-
+        
         {/* Banner da Comunidade */}
         {activeTab === 'explore' && (
           <div className="mb-8 p-6 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl text-white shadow-lg">
@@ -164,7 +227,7 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
                 </div>
               </div>
             </div>
-
+            
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -206,8 +269,8 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
               </div>
               <h3 className="text-xl font-bold text-slate-800 mb-2">Nada por aqui ainda</h3>
               <p className="text-slate-600 mb-8 max-w-md mx-auto">
-                {activeTab === 'mine'
-                  ? 'Você ainda não criou nenhuma página.'
+                {activeTab === 'mine' 
+                  ? 'Você ainda não criou nenhuma página.' 
                   : 'Ainda não há páginas públicas na comunidade.'}
               </p>
               {activeTab === 'mine' && (
@@ -226,53 +289,70 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     {/* Info da Página */}
                     <div className="flex gap-4 flex-1">
-                      <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200">
-                        {page.photoUrl ? (
-                          <img src={page.photoUrl} alt="Capa" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300">
-                            <Heart size={24} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-bold text-slate-800">
-                            {page.name1} & {page.name2}
-                          </h3>
-                          {activeTab === 'mine' && (
-                            page.isPublished ? (
-                              <span className="px-2.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wide rounded-full">
-                                Online
-                              </span>
+                        <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200 relative group-hover:scale-105 transition-transform duration-300">
+                            {page.photoUrl ? (
+                                <img src={page.photoUrl} alt="Capa" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="px-2.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide rounded-full">
-                                Rascunho
-                              </span>
-                            )
-                          )}
+                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <Heart size={24} />
+                                </div>
+                            )}
                         </div>
-
-                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar size={14} className="text-slate-400" />
-                            <span>{page.createdAt?.seconds ? new Date(page.createdAt.seconds * 1000).toLocaleDateString() : 'Recentemente'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Eye size={14} className="text-slate-400" />
-                            <span>{page.views || 0} views</span>
-                          </div>
-                          {page.slug && (
-                            <div className="flex items-center gap-1.5 font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                              <ExternalLink size={10} /> /{page.slug}
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-1">
+                                <h3 className="text-lg font-bold text-slate-800">
+                                {page.name1} & {page.name2}
+                                </h3>
+                                {activeTab === 'mine' && (
+                                  page.isPublished ? (
+                                    <span className="px-2.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wide rounded-full">
+                                        Online
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide rounded-full">
+                                        Rascunho
+                                    </span>
+                                  )
+                                )}
                             </div>
-                          )}
+                            
+                            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
+                                <div className="flex items-center gap-1.5" title="Data de criação">
+                                    <Calendar size={14} className="text-slate-400" />
+                                    <span>{page.createdAt?.seconds ? new Date(page.createdAt.seconds * 1000).toLocaleDateString() : 'Recentemente'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5" title="Visualizações">
+                                    <Eye size={14} className="text-blue-400" />
+                                    <span>{page.views || 0}</span>
+                                </div>
+                                {/* --- NOVO: Contador de Likes --- */}
+                                <div className="flex items-center gap-1.5" title="Curtidas">
+                                    <Heart size={14} className="text-rose-500 fill-rose-500" />
+                                    <span>{page.likes || 0}</span>
+                                </div>
+                                {page.slug && (
+                                    <div className="flex items-center gap-1.5 font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                                        <ExternalLink size={10} /> /{page.slug}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                      </div>
                     </div>
-
+                    
                     {/* Ações */}
-                    <div className="flex items-center gap-2 self-start lg:self-center">
+                    <div className="flex flex-wrap items-center gap-2 self-start lg:self-center mt-4 lg:mt-0">
+                      
+                      {/* --- NOVO: Botão QR Code --- */}
+                      {page.slug && (
+                        <button
+                          onClick={() => setQrCodePage(page)}
+                          className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200"
+                          title="Gerar QR Code"
+                        >
+                          <QrCode size={18} />
+                        </button>
+                      )}
+
                       <button
                         onClick={() => handleShare(page.slug)}
                         className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -283,15 +363,16 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
 
                       {page.slug && (
                         <button
-                          onClick={() => handleCopyUrl(page.slug)}
-                          className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors relative"
-                          title="Copiar Link"
+                            onClick={() => handleCopyUrl(page.slug)}
+                            className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors relative"
+                            title="Copiar Link"
                         >
-                          {copied ? <Check size={18} /> : <Copy size={18} />}
+                            {copied ? <Check size={18} /> : <Copy size={18} />}
                         </button>
                       )}
+                      
+                      <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
 
-                      {/* Botão Ver é Comum */}
                       <a
                         href={`/love/${page.slug}`}
                         target="_blank"
@@ -301,10 +382,8 @@ const Dashboard = ({ onBack, onCreateNew, setStep }) => {
                         <ExternalLink size={16} /> Ver
                       </a>
 
-                      {/* Botões de Edição/Exclusão APENAS na aba MINE */}
                       {activeTab === 'mine' && (
                         <>
-                          <div className="w-px h-8 bg-slate-200 mx-2 hidden lg:block"></div>
                           {!page.isPublished && (
                             <button
                               onClick={() => setStep('builder')}

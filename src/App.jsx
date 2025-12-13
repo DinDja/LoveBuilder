@@ -88,6 +88,8 @@ export default function App() {
             onFinish={() => setStep('view')}
           />
         );
+      case "example":
+        return <ExampleView setStep={setStep} />
 
       case 'view':
         return <LovePageViewer slugProp={currentSlug} />;
