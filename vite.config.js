@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'] // Isso previte duplicação do React
   },
-  base: './', // <--- MUDANÇA AQUI: Ponto antes da barra
+  base: '/', // <--- MUDANÇA AQUI: Ponto antes da barra
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
