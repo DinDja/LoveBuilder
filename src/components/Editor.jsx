@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, 
   Smartphone, Laptop, Lock, Upload, PlayCircle, Loader2, 
-  Eye, Edit3 
+  Edit3, Eye, LogIn, UserPlus 
 } from 'lucide-react';
 import RomanticPage from './RomanticPage';
+import AuthModal from './AuthModal'; // Importando o Modal
 import { FONTS, THEMES, STICKERS } from '../data/constants';
 import { db, auth } from '../firebase/config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth'; // Apenas Auth State
 
 const MUSIC_PRESETS = [
   { id: 1, name: "Perfect", artist: "Ed Sheeran", url: "https://open.spotify.com/intl-pt/track/0tgVpDi06FyKpA1z0VMD4v?si=489a278282164c87" },
@@ -16,8 +17,6 @@ const MUSIC_PRESETS = [
   { id: 3, name: "Just the Way You Are", artist: "Bruno Mars", url: "https://open.spotify.com/intl-pt/track/47Slg6LuqLaX0VodpSCvPt?si=4a8e21c373624272" },
   { id: 4, name: "A Thousand Years", artist: "Christina Perri", url: "https://open.spotify.com/intl-pt/track/6lanRgr6wXibZr8KgzXxBl?si=9fcdf360f58b4e2a" },
   { id: 5, name: "Die With A Smile", artist: "Lady Gaga, Bruno Mars", url: "https://open.spotify.com/intl-pt/track/2plbrEY59IikOBgBGLjaoe?si=95a5fa07a03749ae" },
-
-  // Adições
   { id: 6, name: "Thinking Out Loud", artist: "Ed Sheeran", url: "https://open.spotify.com/intl-pt/track/34gCuhDGsG4bRPIf9bb02f?si=28831dd1a99b4940" },
   { id: 7, name: "Until I Found You", artist: "Stephen Sanchez", url: "https://open.spotify.com/intl-pt/track/0T5iIrXA4p5GsubkhuBIKV?si=5aabeeb4d67b447a" },
   { id: 8, name: "Make You Feel My Love", artist: "Adele", url: "https://open.spotify.com/intl-pt/track/5FgPwJ7Nh2FVmIXviKl2VF?si=8aea5c9005264420" },
@@ -26,7 +25,6 @@ const MUSIC_PRESETS = [
   { id: 11, name: "Photograph", artist: "Ed Sheeran", url: "https://open.spotify.com/intl-pt/track/1HNkqx9Ahdgi1Ixy2xkKkL?si=894c522fd6b5432c" },
   { id: 12, name: "Lucky", artist: "Jason Mraz, Colbie Caillat", url: "https://open.spotify.com/intl-pt/track/0IktbUcnAGrvD03AWnz3Q8?si=c5ef417b77324cd4" }
 ];
-
 
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
@@ -58,9 +56,21 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [previewMode, setPreviewMode] = useState('mobile');
   const [isSaving, setIsSaving] = useState(false);
-  
-  // 'editor' exibe o formulário, 'preview' exibe o resultado
   const [mobileView, setMobileView] = useState('editor');
+  
+  // --- NOVOS ESTADOS PARA AUTH ---
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Monitorar Autenticação
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -80,14 +90,14 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
   };
 
   const handleSavePage = async () => {
+    // Verificação de segurança extra
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     try {
       setIsSaving(true);
-
-      let user = auth.currentUser;
-      if (!user) {
-        const userCred = await signInAnonymously(auth);
-        user = userCred.user;
-      }
 
       const rawSlug = pageData.slug || `${pageData.name1}-${pageData.name2}-${Date.now().toString().slice(-4)}`;
       const generatedSlug = rawSlug
@@ -107,7 +117,7 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
         fontName: pageData.fontName || "sans",
         enableStickers: pageData.enableStickers !== false,
         sticker: pageData.sticker || "❤️",
-        userId: user.uid,
+        userId: user.uid, // Usa o UID do usuário logado
         slug: generatedSlug,
         createdAt: serverTimestamp(),
         views: 0,
@@ -129,6 +139,108 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // --- RENDERIZAÇÃO CONDICIONAL DA SIDEBAR ---
+  const renderSidebarContent = () => {
+    // 1. Carregando...
+    if (authLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
+          <p className="text-sm">Verificando acesso...</p>
+        </div>
+      );
+    }
+
+    // 2. TELA DE BLOQUEIO (Usuário não logado)
+    if (!user) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full px-8 text-center animate-fade-in">
+          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+            <Lock size={32} className="text-slate-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Edição Restrita</h2>
+          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+            Para criar e salvar sua página eterna de amor, você precisa entrar na sua conta. É rápido e gratuito.
+          </p>
+          
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-200 transition-all flex items-center justify-center gap-2 mb-4"
+          >
+            <LogIn size={20} /> Entrar ou Cadastrar
+          </button>
+          
+          <button
+            onClick={() => setStep('landing')}
+            className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+          >
+            Voltar ao Início
+          </button>
+        </div>
+      );
+    }
+
+    // 3. EDITOR REAL (Usuário logado)
+    return (
+      <>
+        {/* Tabs */}
+        <div className="px-4 lg:px-8 pt-6 pb-2">
+          <div className="flex p-1 bg-slate-100 rounded-xl overflow-x-auto no-scrollbar">
+            {[
+              { id: 'basic', icon: <Heart size={14} />, label: 'Início' },
+              { id: 'design', icon: <Palette size={14} />, label: 'Estilo' },
+              { id: 'content', icon: <Type size={14} />, label: 'Texto' },
+              { id: 'media', icon: <Music size={14} />, label: 'Mídia' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? 'bg-white text-rose-600 shadow-sm ring-1 ring-black/5' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 custom-scrollbar">
+          {renderTabContent()}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 lg:p-6 border-t border-slate-100 bg-white z-20 mb-[60px] lg:mb-0">
+          <div className="space-y-3">
+            <button
+              onClick={handleSavePage}
+              disabled={isSaving}
+              className="w-full py-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white rounded-xl font-bold text-lg shadow-xl shadow-rose-200 hover:shadow-2xl hover:shadow-rose-300 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+              {isSaving ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" /> Salvando...
+                </>
+              ) : (
+                <>
+                  <Gift size={20} /> Salvar e Continuar
+                </>
+              )}
+            </button>
+
+            <div className="text-center">
+              <span className="text-xs text-slate-500 inline-flex items-center gap-1">
+                <Check size={12} /> Logado como {user.displayName || user.email.split('@')[0]}
+              </span>
+            </div>
+          </div>
+        </div>
+      </>
+    );
   };
 
   const renderTabContent = () => {
@@ -340,7 +452,14 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans flex-col lg:flex-row">
       
-      {/* --- SIDEBAR (EDITOR) --- */}
+      {/* MODAL DE LOGIN (SEMPRE PRESENTE NO DOM) */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onSuccess={() => setIsAuthModalOpen(false)}
+      />
+
+      {/* --- SIDEBAR (EDITOR / LOCK SCREEN) --- */}
       <div className={`w-full lg:w-[450px] bg-white flex flex-col h-full shadow-[20px_0_40px_rgba(0,0,0,0.05)] z-20 relative transition-all duration-300 ${
         mobileView === 'editor' ? 'flex' : 'hidden lg:flex'
       }`}>
@@ -358,60 +477,9 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-4 lg:px-8 pt-6 pb-2">
-          <div className="flex p-1 bg-slate-100 rounded-xl overflow-x-auto no-scrollbar">
-            {[
-              { id: 'basic', icon: <Heart size={14} />, label: 'Início' },
-              { id: 'design', icon: <Palette size={14} />, label: 'Estilo' },
-              { id: 'content', icon: <Type size={14} />, label: 'Texto' },
-              { id: 'media', icon: <Music size={14} />, label: 'Mídia' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all whitespace-nowrap ${
-                  activeTab === tab.id 
-                    ? 'bg-white text-rose-600 shadow-sm ring-1 ring-black/5' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Form Content */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 custom-scrollbar">
-          {renderTabContent()}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-4 lg:p-6 border-t border-slate-100 bg-white z-20 mb-[60px] lg:mb-0">
-          <div className="space-y-3">
-            <button
-              onClick={handleSavePage}
-              disabled={isSaving}
-              className="w-full py-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white rounded-xl font-bold text-lg shadow-xl shadow-rose-200 hover:shadow-2xl hover:shadow-rose-300 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-              {isSaving ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" /> Salvando...
-                </>
-              ) : (
-                <>
-                  <Gift size={20} /> Salvar e Continuar
-                </>
-              )}
-            </button>
-
-            <div className="text-center">
-              <span className="text-xs text-slate-500 inline-flex items-center gap-1">
-                <Check size={12} /> Criação 100% gratuita
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* CONTEÚDO DINÂMICO (EDITOR OU BLOQUEIO) */}
+        {renderSidebarContent()}
+        
       </div>
 
       {/* --- PREVIEW AREA --- */}
@@ -442,7 +510,7 @@ const Editor = ({ pageData, handleInputChange, setStep, onPageCreated }) => {
           </button>
         </div>
 
-        {/* Mobile Real View (CORREÇÃO DE ROLAGEM APLICADA AQUI) */}
+        {/* Mobile Real View */}
         <div className="lg:hidden w-full h-full overflow-y-auto pb-[100px] animate-fade-in relative z-10 custom-scrollbar">
            <RomanticPage data={pageData} isPreview={true} />
         </div>
