@@ -1,11 +1,30 @@
 import React, { useState } from 'react';
-import { Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, Smartphone, Laptop, Lock } from 'lucide-react';
+import { Heart, Palette, Type, Music, ImageIcon, Gift, X, Check, Smartphone, Laptop, Lock, Upload, PlayCircle } from 'lucide-react';
 import RomanticPage from './RomanticPage';
 import { FONTS, THEMES, STICKERS } from '../data/constants';
+
+const MUSIC_PRESETS = [
+  { id: 1, name: "Perfect", artist: "Ed Sheeran", url: "https://open.spotify.com/track/0tgVpDi06FyKpA1z0eMD4v" },
+  { id: 2, name: "All of Me", artist: "John Legend", url: "https://open.spotify.com/track/3U4isOIWM3VvDubwSI3y7a" },
+  { id: 3, name: "Just the Way You Are", artist: "Bruno Mars", url: "https://open.spotify.com/track/7BqBn9nXd69PGCnZRODT0p" },
+  { id: 4, name: "A Thousand Years", artist: "Christina Perri", url: "https://open.spotify.com/track/6lanRgr6wXibZr8KincXXk" },
+  { id: 5, name: "Die With A Smile", artist: "Lady Gaga, Bruno Mars", url: "https://open.spotify.com/track/2plIBRhlDr9GnrPNUeYf5w" }
+];
 
 const Editor = ({ pageData, handleInputChange, setStep }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [previewMode, setPreviewMode] = useState('mobile');
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleInputChange('photoUrl', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -47,7 +66,6 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
       case 'design':
         return (
           <div className="space-y-8 animate-fade-in">
-            {/* Tema Visual */}
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tema Visual</label>
               <div className="grid grid-cols-1 gap-3">
@@ -69,7 +87,6 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
               </div>
             </div>
             
-            {/* Tipografia */}
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tipografia</label>
               <div className="flex gap-2">
@@ -86,7 +103,6 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
               </div>
             </div>
             
-            {/* Stickers */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Stickers Flutuantes</label>
@@ -134,18 +150,37 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
       
       case 'media':
         return (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-8 animate-fade-in">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <ImageIcon size={14} /> URL da Foto do Casal
+                <ImageIcon size={14} /> Foto do Casal
               </label>
-              <input
-                type="text"
-                value={pageData.photoUrl}
-                onChange={(e) => handleInputChange('photoUrl', e.target.value)}
-                className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all text-sm truncate"
-                placeholder="https://..."
-              />
+              
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={pageData.photoUrl}
+                  onChange={(e) => handleInputChange('photoUrl', e.target.value)}
+                  className="flex-1 h-12 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all text-sm truncate"
+                  placeholder="Cole a URL ou use o botão ao lado"
+                />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="flex items-center justify-center h-12 w-12 text-rose-600 bg-rose-50 rounded-xl cursor-pointer hover:bg-rose-100 transition-colors border border-rose-200"
+                  >
+                    <Upload size={20} />
+                  </label>
+                </div>
+              </div>
+
               <div className="relative w-full h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
                 {pageData.photoUrl ? (
                   <img src={pageData.photoUrl} className="w-full h-full object-cover" onError={(e) => e.target.src = ''} alt="Preview" />
@@ -157,17 +192,44 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
 
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <Music size={14} /> Link Spotify
+                <Music size={14} /> Trilha Sonora
               </label>
-              <input
-                type="text"
-                value={pageData.spotifyUrl}
-                onChange={(e) => handleInputChange('spotifyUrl', e.target.value)}
-                className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all text-sm truncate"
-                placeholder="Cole o link da música do Spotify aqui..."
-              />
-              <div className="text-[10px] text-slate-400 bg-blue-50 text-blue-600 p-2 rounded-lg">
-                Dica: Use links de músicas públicas. O player transformará automaticamente para o formato correto.
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-semibold text-slate-400">SELEÇÃO RÁPIDA</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {MUSIC_PRESETS.map((song) => (
+                    <button
+                      key={song.id}
+                      onClick={() => handleInputChange('spotifyUrl', song.url)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group ${
+                        pageData.spotifyUrl === song.url 
+                          ? 'bg-rose-50 border-rose-200 text-rose-900' 
+                          : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pageData.spotifyUrl === song.url ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <PlayCircle size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold">{song.name}</div>
+                        <div className="text-xs opacity-70">{song.artist}</div>
+                      </div>
+                      {pageData.spotifyUrl === song.url && <Check size={16} className="text-rose-500" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <label className="text-[10px] font-semibold text-slate-400 mb-2 block">OU COLE SEU LINK</label>
+                <input
+                  type="text"
+                  value={pageData.spotifyUrl}
+                  onChange={(e) => handleInputChange('spotifyUrl', e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all text-sm truncate"
+                  placeholder="https://open.spotify.com/track/..."
+                />
               </div>
             </div>
           </div>
@@ -180,9 +242,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
-      {/* Sidebar de Edição */}
       <div className="w-full lg:w-[450px] bg-white flex flex-col h-full shadow-[20px_0_40px_rgba(0,0,0,0.05)] z-20 relative">
-        {/* Header Editor */}
         <div className="h-20 px-8 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-2 text-slate-800 font-bold text-lg">
             <div className="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center text-white">
@@ -195,7 +255,6 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
           </button>
         </div>
 
-        {/* Tabs Modernas */}
         <div className="px-8 pt-6 pb-2">
           <div className="flex p-1 bg-slate-100 rounded-xl">
             {[
@@ -216,12 +275,10 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
           </div>
         </div>
 
-        {/* Formulários com Scroll */}
         <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
           {renderTabContent()}
         </div>
 
-        {/* Footer do Editor */}
         <div className="p-6 border-t border-slate-100 bg-white z-20">
           <button
             onClick={() => setStep('checkout')}
@@ -231,12 +288,9 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
         </div>
       </div>
 
-      {/* Preview Area */}
       <div className="flex-1 bg-slate-100 relative flex flex-col items-center justify-center p-4 lg:p-8 overflow-hidden transition-all duration-500">
-        {/* Decorative BG */}
         <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
-        {/* Preview Controls */}
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-white p-1 rounded-full shadow-lg border border-slate-100 flex gap-1">
           <button
             onClick={() => setPreviewMode('mobile')}
@@ -258,7 +312,6 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
           </button>
         </div>
 
-        {/* Preview Container */}
         {previewMode === 'mobile' ? (
           <div className="relative w-full max-w-[380px] h-[750px] bg-slate-900 rounded-[55px] shadow-[0_0_0_12px_#1e293b,0_0_0_14px_#475569,0_50px_100px_-20px_rgba(0,0,0,0.5)] border-[8px] border-slate-900 overflow-hidden z-10 animate-fade-in-up">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[30px] w-[140px] bg-black rounded-b-3xl z-50"></div>
@@ -275,7 +328,7 @@ const Editor = ({ pageData, handleInputChange, setStep }) => {
                 <div className="w-3 h-3 rounded-full bg-green-400 border border-green-500"></div>
               </div>
               <div className="flex-1 max-w-xl mx-auto bg-white border border-slate-200 rounded-md h-7 flex items-center justify-center text-[10px] text-slate-400 gap-2">
-                <Lock size={8} /> lovebuilder.com/{pageData.name1.toLowerCase()}-{pageData.name2.toLowerCase()}
+                <Lock size={8} /> lovebuilder.netlify.app/{pageData.name1.toLowerCase()}-{pageData.name2.toLowerCase()}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">

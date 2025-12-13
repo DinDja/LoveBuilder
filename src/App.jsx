@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import LandingPage from './components/LandingPage';
 import Editor from './components/Editor';
 import Checkout from './components/Checkout';
+import ExampleView from './components/ExampleView';
 import { STICKERS, THEMES, FONTS } from './data/constants';
 
 export default function App() {
   const [step, setStep] = useState('landing');
   const [pageData, setPageData] = useState({
-    name1: 'Tony',
-    name2: 'Pepper',
+    name1: 'Luffy',
+    name2: 'Boa',
     startDate: '2023-01-01T00:00',
     message: 'Você é a única coisa que eu não quero consertar, porque é perfeita. Te amo 3000.',
     themeId: 'rose',
     fontName: 'Modern Sans',
-    spotifyUrl: 'https://open.spotify.com/track/2dpaYNEQHiRxtZbfNsse99?si=3875344849224422',
-    photoUrl: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1000&auto=format&fit=crop',
+    spotifyUrl: 'https://open.spotify.com/intl-pt/track/352FuGmGJClPjojSYjNrXG?si=028d4dd076ab4c7f',
+    photoUrl: 'https://i.pinimg.com/736x/42/cb/91/42cb91bdad4ff739da889485f1255419.jpg',
     enableStickers: true,
     sticker: '❤️'
   });
@@ -47,9 +48,30 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::selection {
+          background-color: #fbcfe8; /* rose-200 */
+          color: #be185d; /* rose-700 */
+        }
+        
+        ::-moz-selection {
+          background-color: #fbcfe8; /* rose-200 */
+          color: #be185d; /* rose-700 */
+        }
+        
+        /* Estilo específico para a landing page */
+        .landing-page-text::selection {
+          background-color: #fce7f3; /* rose-100 mais clarinho */
+          color: #9d174d; /* rose-800 */
+        }
+        
+        .landing-page-text::-moz-selection {
+          background-color: #fce7f3; /* rose-100 mais clarinho */
+          color: #9d174d; /* rose-800 */
+        }
       `}</style>
       
       {step === 'landing' && <LandingPage setStep={setStep} />}
+      {step === 'example' && <ExampleView setStep={setStep} />}
       {step === 'builder' && (
         <Editor 
           pageData={pageData} 

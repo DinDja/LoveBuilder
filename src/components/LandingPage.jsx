@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Music, Calendar, Sparkles, ArrowRight } from 'lucide-react';
+import { Heart, Music, Calendar, Sparkles } from 'lucide-react';
 
 const LandingPage = ({ setStep }) => {
   return (
@@ -10,14 +10,15 @@ const LandingPage = ({ setStep }) => {
           <div className="from-rose-500 to-orange-500 text-white p-2 rounded-xl shadow-lg shadow-rose-200 group-hover:rotate-12 transition-transform duration-300">
             <svg width="20" height="20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="32" cy="32" r="32" fill="url(#paint0_linear_brand)" />
-
               <path d="M32 47.5C32 47.5 44 37.9 48.5 31C51.5 26.5 50.5 20 45.5 19C41.5 18.2 36.5 21 32 25C27.5 21 22.5 18.2 18.5 19C13.5 20 12.5 26.5 15.5 31C20 37.9 32 47.5 32 47.5Z" fill="white" />
-
               <defs>
                 <linearGradient id="paint0_linear_brand" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#E11D48" /> <stop offset="1" stop-color="#F97316" /> </linearGradient>
+                  <stop stopColor="#E11D48" />
+                  <stop offset="1" stopColor="#F97316" />
+                </linearGradient>
               </defs>
-            </svg>           </div>
+            </svg>
+          </div>
           <span className="font-bold text-xl tracking-tight text-slate-800">Love<span className="text-rose-600">Builder</span></span>
         </div>
         <button
@@ -39,10 +40,12 @@ const LandingPage = ({ setStep }) => {
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={() => setStep('builder')}
-              className="px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-full font-bold shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
-              Começar Agora <ArrowRight size={20} />
+              className="px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white text-lg rounded-full font-bold shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 group">
+              Começar Agora <Heart className="group-hover:animate-ping inline-flex opacity-30" size={20} />
             </button>
-            <button className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-lg rounded-full font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
+            <button 
+              onClick={() => setStep('example')}
+              className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-lg rounded-full font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
               Ver Exemplo
             </button>
           </div>
@@ -63,12 +66,12 @@ const LandingPage = ({ setStep }) => {
           <div className="relative bg-white p-2 rounded-3xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500 border border-slate-100">
             <div className="rounded-2xl overflow-hidden bg-slate-100 h-[500px] w-full relative">
               <img
-                src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=2000&auto=format&fit=crop"
+                src="https://static.beebom.com/wp-content/uploads/2025/04/Hancock-in-love.jpg?w=1250&quality=75"
                 className="absolute inset-0 w-full h-full object-cover opacity-80"
                 alt="Preview"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-rose-900/80 to-transparent flex flex-col justify-end p-8 text-white">
-                <h3 className="text-3xl font-bold mb-2">Ana & João</h3>
+                <h3 className="text-3xl font-bold mb-2">Luffy & Boa</h3>
                 <p className="text-rose-100 mb-4">Juntos há 3 anos, 2 meses e 12 dias</p>
                 <div className="bg-white/20 backdrop-blur-md p-3 rounded-xl flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
@@ -96,13 +99,14 @@ const LandingPage = ({ setStep }) => {
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
             </div>
             <div className="flex-1 text-center">
-              <div className="inline-block px-4 py-1 bg-slate-900 rounded-md text-[10px] text-slate-400 font-mono">lovebuilder.com/tony-pepper</div>
+              <div className="inline-block px-4 py-1 bg-slate-900 rounded-md text-[10px] text-slate-400 font-mono">lovebuilder.netlify.app/tony-pepper</div>
             </div>
           </div>
           <div className="aspect-[16/9] bg-white rounded-b-lg overflow-hidden relative">
             <img
               src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=2000&auto=format&fit=crop"
               className="absolute inset-0 w-full h-full object-cover opacity-20"
+              alt="Preview"
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
