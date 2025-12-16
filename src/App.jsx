@@ -7,6 +7,7 @@ import LovePageViewer from './components/LovePageViewer';
 import Dashboard from './components/Dashboard';
 import { useLovePage } from './hooks/useLovePage';
 import LoveFeed from './components/LoveFeed';
+import ZodiacMatch from './components/ZodiacMatch'
 
 export default function App() {
   const [step, setStep] = useState('landing');
@@ -55,7 +56,7 @@ export default function App() {
     switch (step) {
       case 'landing':
         return <LandingPage setStep={setStep} />;
-        
+
       case 'feed':
         return <LoveFeed onBack={() => setStep('landing')} />;
 
@@ -81,6 +82,13 @@ export default function App() {
             onPageCreated={handlePageCreated}
           />
         );
+
+
+      case 'Zodiac':
+        return (
+          <ZodiacMatch onBack={() => setStep('landing')}/>
+        );
+
 
       case 'checkout':
         return (

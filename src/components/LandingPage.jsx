@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid,
   Settings, ChevronDown, Eye, ArrowRight, User, Quote,
-  Menu, X, Globe // <--- ADICIONEI O GLOBE AQUI
+  Menu, X, Globe, LucidePlaneTakeoff // <--- ADICIONEI O GLOBE AQUI
 } from 'lucide-react';
 import { useLovePage } from '../hooks/useLovePage';
 import AuthModal from './AuthModal';
@@ -112,6 +112,12 @@ const LandingPage = ({ setStep }) => {
               <a href="#how-to" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
                 Como Funciona
               </a>
+              <button
+                onClick={() => setStep('Zodiac')}
+                className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors flex items-center gap-2"
+              >
+                <LucidePlaneTakeoff size={16} /> Zodiac Match
+              </button>
             </div>
 
             {/* Lado Direito Desktop - Botões/Autenticação */}
