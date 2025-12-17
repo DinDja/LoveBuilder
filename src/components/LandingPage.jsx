@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Heart, Music, Calendar, Sparkles, Loader, LogOut, Grid,
   Settings, ChevronDown, Eye, ArrowRight, User, Quote,
-  Menu, X, Globe, LucidePlaneTakeoff // <--- ADICIONEI O GLOBE AQUI
+  Menu, X, Globe, Infinity // <--- ADICIONEI O GLOBE AQUI
 } from 'lucide-react';
 import { useLovePage } from '../hooks/useLovePage';
 import AuthModal from './AuthModal';
@@ -105,18 +105,19 @@ const LandingPage = ({ setStep }) => {
               >
                 <Globe size={16} /> Explorar
               </button>
-
-              <a href="#features" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
-                Recursos
-              </a>
-              <a href="#how-to" className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors">
-                Como Funciona
-              </a>
               <button
                 onClick={() => setStep('Zodiac')}
                 className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors flex items-center gap-2"
               >
-                <LucidePlaneTakeoff size={16} /> Zodiac Match
+                <Infinity size={16} /> Zodiac 
+              </button>
+              <button  onClick={() => setStep('tarot')}
+                className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors flex items-center gap-2">
+                Tarot
+              </button>
+                 <button  onClick={() => setStep('Match')}
+                className="text-slate-600 hover:text-rose-600 font-medium text-sm transition-colors flex items-center gap-2">
+                Match
               </button>
             </div>
 

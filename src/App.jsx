@@ -7,7 +7,9 @@ import LovePageViewer from './components/LovePageViewer';
 import Dashboard from './components/Dashboard';
 import { useLovePage } from './hooks/useLovePage';
 import LoveFeed from './components/LoveFeed';
-import ZodiacMatch from './components/ZodiacMatch'
+import ZodiacMatch from './components/ZodiacMatch';
+import { TarotTable } from './components/TarotTable'; 
+import Match from "./components/Match"
 
 export default function App() {
   const [step, setStep] = useState('landing');
@@ -32,13 +34,55 @@ export default function App() {
     setPageData(prev => ({ ...prev, [field]: value }));
   };
 
-  // --- NOVA FUNÇÃO DE CONTROLE (CORREÇÃO DO NULL) ---
   const handlePageCreated = (newSlug) => {
-    console.log("Página criada com slug:", newSlug); // Debug
+    console.log("Página criada com slug:", newSlug);
     setCurrentSlug(newSlug);
-    // Também atualizamos o pageData para garantir consistência
     handleInputChange('slug', newSlug);
     setStep('checkout');
+  };
+
+  // Lógica para processar o resultado do Zodíaco
+  const handleZodiacResult = (result) => {
+    const formattedMessage = `✨ Destino Astral: ${result.sign1Data.name} & ${result.sign2Data.name} ✨\n` +
+      `🔥 Compatibilidade: ${result.percentage}%\n` +
+      `📜 ${result.title}\n\n` +
+      `${result.summary}\n\n` +
+      `💡 ${result.sections.mental.text}\n` +
+      `🔮 ${result.sections.longTerm.text}`;
+
+    setPageData(prev => ({
+      ...prev,
+      name1: result.sign1Data.name,
+      name2: result.sign2Data.name,
+      message: formattedMessage,
+      sticker: result.sign1Data.element === 'fogo' ? '🔥' : result.sign1Data.element === 'agua' ? '💧' : result.sign1Data.element === 'terra' ? '🌱' : '💨'
+    }));
+
+    // Opcional: Ir direto para o editor após o match
+    setStep('builder');
+  };
+
+  // Lógica para processar o resultado do Tarot
+  const handleTarotResult = (reading) => {
+    // Formata a leitura das cartas para a mensagem
+    let tarotMessage = "✨ O Oráculo Revelou Nossa Jornada ✨\n\n";
+
+    reading.forEach((card, index) => {
+      const position = index === 0 ? "Passado" : index === 1 ? "Presente" : "Futuro";
+      tarotMessage += `🎴 ${position}: ${card.name} ${card.isReversed ? '(Invertida)' : ''}\n`;
+      tarotMessage += `"${card.isReversed ? card.meanings.reversed : card.meanings.upright}"\n\n`;
+    });
+
+    tarotMessage += "Que as estrelas guiem nosso amor! 🌟";
+
+    setPageData(prev => ({
+      ...prev,
+      message: tarotMessage,
+      sticker: '🔮' // Define o sticker místico
+    }));
+
+    // Vai para o editor para finalizar a página
+    setStep('builder');
   };
 
   useEffect(() => {
@@ -59,7 +103,8 @@ export default function App() {
 
       case 'feed':
         return <LoveFeed onBack={() => setStep('landing')} />;
-
+      case 'Match':
+        return <Match />
       case 'dashboard':
         return (
           <Dashboard
@@ -78,23 +123,30 @@ export default function App() {
             pageData={pageData}
             handleInputChange={handleInputChange}
             setStep={setStep}
-            // Passamos a nova função robusta
             onPageCreated={handlePageCreated}
           />
         );
 
-
       case 'Zodiac':
         return (
-          <ZodiacMatch onBack={() => setStep('landing')}/>
+          <ZodiacMatch
+            onBack={() => setStep('landing')}
+            onMatchCreate={handleZodiacResult}
+          />
         );
 
+      case 'tarot':
+        return (
+          <TarotTable
+            onBack={() => setStep('landing')}
+            onReadingComplete={handleTarotResult}
+          />
+        );
 
       case 'checkout':
         return (
           <Checkout
             pageData={pageData}
-            // Usa o currentSlug ou o slug dentro do pageData como fallback
             slug={currentSlug || pageData.slug}
             onBack={() => setStep('builder')}
             onFinish={() => setStep('view')}
